@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: cloudevents-conductor
+  labels:
+    app: cloudevents-conductor
+spec:
+  selector:
+    app: cloudevents-conductor
+  ports:
+  - protocol: TCP
+    port: 8090
+    targetPort: grpc
+  type: ClusterIP

@@ -5,6 +5,9 @@ import (
 	"fmt"
 
 	ce "github.com/cloudevents/sdk-go/v2"
+	"github.com/openshift-online/maestro/pkg/api"
+	"github.com/openshift-online/maestro/pkg/controllers"
+	"github.com/stolostron/cloudevents-conductor/pkg/controller"
 	"github.com/stolostron/cloudevents-conductor/pkg/services/db"
 	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/client-go/tools/cache"
@@ -21,17 +24,19 @@ var _ server.Service = &RouterService{}
 
 // RouterService implements the server.Service interface for routing the request to dbservice or workservice.
 type RouterService struct {
-	dbService    *db.DBWorkService
-	workService  *work.WorkService
-	workInformer workinformers.ManifestWorkInformer
+	dbService     *db.DBWorkService
+	controllerMgr *controller.ControllerManager
+	workService   *work.WorkService
+	workInformer  workinformers.ManifestWorkInformer
 }
 
-func NewRouterService(dbService *db.DBWorkService, workService *work.WorkService,
-	workInformer workinformers.ManifestWorkInformer) *RouterService {
+func NewRouterService(dbService *db.DBWorkService, controllerMgr *controller.ControllerManager,
+	workService *work.WorkService, workInformer workinformers.ManifestWorkInformer) *RouterService {
 	return &RouterService{
-		dbService:    dbService,
-		workService:  workService,
-		workInformer: workInformer,
+		dbService:     dbService,
+		controllerMgr: controllerMgr,
+		workService:   workService,
+		workInformer:  workInformer,
 	}
 }
 
@@ -74,11 +79,30 @@ func (s *RouterService) HandleStatusUpdate(ctx context.Context, evt *ce.Event) e
 
 // RegisterHandler registers the event handler for the RouterService.
 func (w *RouterService) RegisterHandler(handler server.EventHandler) {
-	// TODO: Register the handler for db resource
+	w.controllerMgr.Add(&controllers.ControllerConfig{
+		Source:   "Resources",
+		Handlers: w.ControllerHandlerFuncs(handler),
+	})
 
 	// Register the handler for kube resource
 	if _, err := w.workInformer.Informer().AddEventHandler(w.EventHandlerFuncs(handler)); err != nil {
 		klog.Errorf("failed to register work informer event handler, %v", err)
+	}
+}
+
+// ControllerHandlerFuncs returns the ControllerHandlerFuncs for the RouterService.
+func (w *RouterService) ControllerHandlerFuncs(handler server.EventHandler) map[api.EventType][]controllers.ControllerHandlerFunc {
+	return map[api.EventType][]controllers.ControllerHandlerFunc{
+		api.CreateEventType: {func(ctx context.Context, resourceID string) error {
+			return handler.OnCreate(ctx, payload.ManifestBundleEventDataType, resourceID)
+
+		}},
+		api.UpdateEventType: {func(ctx context.Context, resourceID string) error {
+			return handler.OnUpdate(ctx, payload.ManifestBundleEventDataType, resourceID)
+		}},
+		api.DeleteEventType: {func(ctx context.Context, resourceID string) error {
+			return handler.OnDelete(ctx, payload.ManifestBundleEventDataType, resourceID)
+		}},
 	}
 }
 
