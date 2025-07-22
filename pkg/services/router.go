@@ -42,12 +42,22 @@ func (s *RouterService) Get(ctx context.Context, resourceID string) (*ce.Event, 
 	return s.dbService.Get(ctx, resourceID)
 }
 
-// List the cloudEvent from the service
+// List the cloudEvent from both kube and db service
 func (s *RouterService) List(listOpts types.ListOptions) ([]*ce.Event, error) {
-	if isKubeResource(listOpts.Source) {
-		return s.workService.List(listOpts)
+	// List the cloudEvents from kube
+	evts, err := s.workService.List(listOpts)
+	if err != nil {
+		return nil, fmt.Errorf("failed to list work resources: %w", err)
 	}
-	return s.dbService.List(listOpts)
+
+	// List the cloudEvents from db
+	dbEvents, err := s.dbService.List(listOpts)
+	if err != nil {
+		return nil, fmt.Errorf("failed to list db resources: %w", err)
+	}
+
+	// Combine the events from both kube and db services
+	return append(evts, dbEvents...), nil
 }
 
 // HandleStatusUpdate processes the resource status update from the agent.
