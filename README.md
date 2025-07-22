@@ -8,4 +8,6 @@ The CloudEvents Conductor is deployed on the hub and exposed to allow connection
 
 The diagram shows how the Cloudevents Conductor acts as a central place, coordinating communication between the SQL Database, Kube Resources, and Klusterlet to manage resources across Kubernetes clusters. The Cloudevents Conductor does not communicate directly with the Maestro server; instead, interactions with Maestro are handled via the SQL Database Listen and Notify mechanism.
 
-![Cloudevents Conductor](./overview.png)
+<p align="center">
+    <img src="./overview.png" alt="Cloudevents Conductor" width="70%">
+</p>
