@@ -45,7 +45,8 @@ func NewRouterService(dbService *db.DBWorkService, specController *controller.Sp
 func (s *RouterService) Get(ctx context.Context, resourceID string) (*ce.Event, error) {
 	switch {
 	case isKubeResource(resourceID):
-		return s.workService.Get(ctx, resourceID)
+		id := resourceID[len(services.CloudEventsSourceKube+"::"):]
+		return s.workService.Get(ctx, id)
 	case isDBResource(resourceID):
 		id := resourceID[len(constants.DefaultSourceID+"::"):]
 		return s.dbService.Get(ctx, id)
