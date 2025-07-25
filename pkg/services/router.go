@@ -3,6 +3,7 @@ package services
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	ce "github.com/cloudevents/sdk-go/v2"
 	"github.com/stolostron/cloudevents-conductor/pkg/services/db"
@@ -37,7 +38,7 @@ func NewRouterService(dbService *db.DBWorkService, workService *work.WorkService
 
 func (s *RouterService) Get(ctx context.Context, resourceID string) (*ce.Event, error) {
 	if isKubeResource(resourceID) {
-		return s.workService.Get(ctx, resourceID)
+		return s.workService.Get(ctx, dropSource(resourceID))
 	}
 	return s.dbService.Get(ctx, resourceID)
 }
@@ -124,6 +125,17 @@ func (w *RouterService) EventHandlerFuncs(handler server.EventHandler) *cache.Re
 func generateResourceID(source, namespace, name string) string {
 	// Generate a resource ID based on the source, namespace, and name
 	return fmt.Sprintf("%s::%s/%s", source, namespace, name)
+}
+
+// dropSource removes the source part from the resourceID.
+// It assumes the resourceID is in the format "source::namespace/name".
+func dropSource(resourceID string) string {
+	// drop source from the resourceID
+	parts := strings.Split(resourceID, "::")
+	if len(parts) < 2 {
+		return resourceID // No source to drop, return as is
+	}
+	return parts[1]
 }
 
 func isKubeResource(resourceID string) bool {

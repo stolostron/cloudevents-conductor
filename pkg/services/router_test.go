@@ -53,3 +53,50 @@ func TestIsKubeResource(t *testing.T) {
 		})
 	}
 }
+func TestDropSource(t *testing.T) {
+	tests := []struct {
+		name       string
+		resourceID string
+		want       string
+	}{
+		{
+			name:       "empty string",
+			resourceID: "",
+			want:       "",
+		},
+		{
+			name:       "no separator",
+			resourceID: "ns/name",
+			want:       "ns/name",
+		},
+		{
+			name:       "single separator",
+			resourceID: "kube::ns/name",
+			want:       "ns/name",
+		},
+		{
+			name:       "multiple separators",
+			resourceID: "kube::ns/name::extra",
+			want:       "ns/name",
+		},
+		{
+			name:       "only source",
+			resourceID: "kube::",
+			want:       "",
+		},
+		{
+			name:       "source with empty value",
+			resourceID: "::ns/name",
+			want:       "ns/name",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := dropSource(tt.resourceID)
+			if got != tt.want {
+				t.Errorf("dropSource(%q) = %q, want %q", tt.resourceID, got, tt.want)
+			}
+		})
+	}
+}
