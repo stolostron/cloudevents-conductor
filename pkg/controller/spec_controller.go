@@ -40,16 +40,16 @@ consumers for the lock will fail fast on redundant messages.
 // events sync will help us to handle unexpected errors (e.g. sever restart), it ensures we will not miss any events
 var defaultEventsSyncPeriod = 10 * time.Hour
 
-// ControllerManager is responsible for managing event controllers.
-type ControllerManager struct {
+// SpecControllerManager is responsible for managing spec event controllers.
+type SpecControllerManager struct {
 	controllers map[string]map[api.EventType][]controllers.ControllerHandlerFunc
 	lockFactory db.LockFactory
 	events      services.EventService
 	eventsQueue workqueue.RateLimitingInterface
 }
 
-func NewControllerManager(lockFactory db.LockFactory, events services.EventService) *ControllerManager {
-	return &ControllerManager{
+func NewSpecControllerManager(lockFactory db.LockFactory, events services.EventService) *SpecControllerManager {
+	return &SpecControllerManager{
 		controllers: map[string]map[api.EventType][]controllers.ControllerHandlerFunc{},
 		lockFactory: lockFactory,
 		events:      events,
@@ -57,22 +57,22 @@ func NewControllerManager(lockFactory db.LockFactory, events services.EventServi
 	}
 }
 
-func (cm *ControllerManager) Queue() workqueue.RateLimitingInterface {
+func (cm *SpecControllerManager) Queue() workqueue.RateLimitingInterface {
 	return cm.eventsQueue
 }
 
-func (cm *ControllerManager) Add(config *controllers.ControllerConfig) {
+func (cm *SpecControllerManager) Add(config *controllers.ControllerConfig) {
 	for ev, fn := range config.Handlers {
 		cm.add(config.Source, ev, fn)
 	}
 }
 
-func (cm *ControllerManager) AddEvent(id string) {
+func (cm *SpecControllerManager) AddEvent(id string) {
 	cm.eventsQueue.Add(id)
 }
 
 // Run starts the controller manager in a goroutine and starts processing events.
-func (cm *ControllerManager) Run(ctx context.Context) {
+func (cm *SpecControllerManager) Run(ctx context.Context) {
 	go func(ctx context.Context) {
 		klog.Infof("Starting event controller")
 		defer cm.eventsQueue.ShutDown()
@@ -91,7 +91,7 @@ func (cm *ControllerManager) Run(ctx context.Context) {
 	}(ctx)
 }
 
-func (cm *ControllerManager) add(source string, ev api.EventType, fns []controllers.ControllerHandlerFunc) {
+func (cm *SpecControllerManager) add(source string, ev api.EventType, fns []controllers.ControllerHandlerFunc) {
 	if _, exists := cm.controllers[source]; !exists {
 		cm.controllers[source] = map[api.EventType][]controllers.ControllerHandlerFunc{}
 	}
@@ -103,7 +103,7 @@ func (cm *ControllerManager) add(source string, ev api.EventType, fns []controll
 	cm.controllers[source][ev] = append(cm.controllers[source][ev], fns...)
 }
 
-func (cm *ControllerManager) handleEvent(id string) (bool, error) {
+func (cm *SpecControllerManager) handleEvent(id string) (bool, error) {
 	ctx := context.Background()
 	// lock the Event with a fail-fast advisory lock context.
 	// this allows concurrent processing of many events by one or many controller managers.
@@ -168,7 +168,7 @@ func (cm *ControllerManager) handleEvent(id string) (bool, error) {
 	return true, nil
 }
 
-func (cm *ControllerManager) runWorker() {
+func (cm *SpecControllerManager) runWorker() {
 	// hot loop until we're told to stop. processNextEvent will automatically wait until there's work available, so
 	// we don't worry about secondary waits
 	for cm.processNextEvent() {
@@ -176,7 +176,7 @@ func (cm *ControllerManager) runWorker() {
 }
 
 // processNextEvent deals with one key off the queue.
-func (cm *ControllerManager) processNextEvent() bool {
+func (cm *SpecControllerManager) processNextEvent() bool {
 	// pull the next event item from queue.
 	// events queue blocks until it can return an item to be processed
 	key, quit := cm.eventsQueue.Get()
@@ -202,7 +202,7 @@ func (cm *ControllerManager) processNextEvent() bool {
 	return true
 }
 
-func (cm *ControllerManager) syncEvents() {
+func (cm *SpecControllerManager) syncEvents() {
 	klog.Infof("purge all reconciled events")
 	// delete the reconciled events from the database firstly
 	if err := cm.events.DeleteAllReconciledEvents(context.Background()); err != nil {

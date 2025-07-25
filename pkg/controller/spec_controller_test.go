@@ -12,7 +12,7 @@ import (
 	"github.com/openshift-online/maestro/pkg/services"
 )
 
-func newTestControllerConfig(ctrl *testController) *controllers.ControllerConfig {
+func newTestSpecControllerConfig(ctrl *testSpecController) *controllers.ControllerConfig {
 	return &controllers.ControllerConfig{
 		Source: "test-event-source",
 		Handlers: map[api.EventType][]controllers.ControllerHandlerFunc{
@@ -23,37 +23,37 @@ func newTestControllerConfig(ctrl *testController) *controllers.ControllerConfig
 	}
 }
 
-type testController struct {
+type testSpecController struct {
 	addCounter    int
 	updateCounter int
 	deleteCounter int
 }
 
-func (d *testController) OnAdd(ctx context.Context, id string) error {
+func (d *testSpecController) OnAdd(ctx context.Context, id string) error {
 	d.addCounter++
 	return nil
 }
 
-func (d *testController) OnUpdate(ctx context.Context, id string) error {
+func (d *testSpecController) OnUpdate(ctx context.Context, id string) error {
 	d.updateCounter++
 	return nil
 }
 
-func (d *testController) OnDelete(ctx context.Context, id string) error {
+func (d *testSpecController) OnDelete(ctx context.Context, id string) error {
 	d.deleteCounter++
 	return nil
 }
 
-func TestControllerFramework(t *testing.T) {
+func TestSpecControllerManager(t *testing.T) {
 	RegisterTestingT(t)
 
 	ctx := context.Background()
 	eventsDao := mocks.NewEventDao()
 	events := services.NewEventService(eventsDao)
-	ctlMgr := NewControllerManager(dbmocks.NewMockAdvisoryLockFactory(), events)
+	ctlMgr := NewSpecControllerManager(dbmocks.NewMockAdvisoryLockFactory(), events)
 
-	ctrl := &testController{}
-	config := newTestControllerConfig(ctrl)
+	ctrl := &testSpecController{}
+	config := newTestSpecControllerConfig(ctrl)
 	ctlMgr.Add(config)
 
 	_, _ = eventsDao.Create(ctx, &api.Event{

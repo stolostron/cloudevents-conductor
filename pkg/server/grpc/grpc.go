@@ -112,7 +112,7 @@ func (o *GRPCServerOptions) Run(ctx context.Context, controllerContext *controll
 	// Initialize the database service and controller manager
 	dbService := db.NewDBWorkService(resource.NewResourceService(sessionFactory),
 		dbstatusevent.NewStatusEventService(sessionFactory))
-	ctrMgr := controller.NewControllerManager(maestrodb.NewAdvisoryLockFactory(sessionFactory),
+	ctrMgr := controller.NewSpecControllerManager(maestrodb.NewAdvisoryLockFactory(sessionFactory),
 		dbevent.NewEventService(sessionFactory))
 
 	// Listen for db events and add them to the controller manager in a goroutine

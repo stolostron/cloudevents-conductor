@@ -24,19 +24,19 @@ var _ server.Service = &RouterService{}
 
 // RouterService implements the server.Service interface for routing the request to dbservice or workservice.
 type RouterService struct {
-	dbService     *db.DBWorkService
-	controllerMgr *controller.ControllerManager
-	workService   *work.WorkService
-	workInformer  workinformers.ManifestWorkInformer
+	dbService      *db.DBWorkService
+	specController *controller.SpecControllerManager
+	workService    *work.WorkService
+	workInformer   workinformers.ManifestWorkInformer
 }
 
-func NewRouterService(dbService *db.DBWorkService, controllerMgr *controller.ControllerManager,
+func NewRouterService(dbService *db.DBWorkService, specController *controller.SpecControllerManager,
 	workService *work.WorkService, workInformer workinformers.ManifestWorkInformer) *RouterService {
 	return &RouterService{
-		dbService:     dbService,
-		controllerMgr: controllerMgr,
-		workService:   workService,
-		workInformer:  workInformer,
+		dbService:      dbService,
+		specController: specController,
+		workService:    workService,
+		workInformer:   workInformer,
 	}
 }
 
@@ -79,7 +79,7 @@ func (s *RouterService) HandleStatusUpdate(ctx context.Context, evt *ce.Event) e
 
 // RegisterHandler registers the event handler for the RouterService.
 func (w *RouterService) RegisterHandler(handler server.EventHandler) {
-	w.controllerMgr.Add(&controllers.ControllerConfig{
+	w.specController.Add(&controllers.ControllerConfig{
 		Source:   "Resources",
 		Handlers: w.ControllerHandlerFuncs(handler),
 	})
