@@ -1,9 +1,0 @@
-# Adds namespace to all resources.
-namespace: open-cluster-management-hub
-
-resources:
-- ./clusterrolebinding.yaml
-- ./clusterrole.yaml
-- ./deployment.yaml
-- ./service.yaml
-- ./serviceaccount.yaml

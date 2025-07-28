@@ -5,7 +5,9 @@ import (
 	"fmt"
 
 	ce "github.com/cloudevents/sdk-go/v2"
+	cloudeventstypes "github.com/cloudevents/sdk-go/v2/types"
 	"github.com/openshift-online/maestro/pkg/api"
+	"github.com/openshift-online/maestro/pkg/constants"
 	"github.com/openshift-online/maestro/pkg/controllers"
 	"github.com/stolostron/cloudevents-conductor/pkg/controller"
 	"github.com/stolostron/cloudevents-conductor/pkg/services/db"
@@ -41,10 +43,15 @@ func NewRouterService(dbService *db.DBWorkService, specController *controller.Sp
 }
 
 func (s *RouterService) Get(ctx context.Context, resourceID string) (*ce.Event, error) {
-	if isKubeResource(resourceID) {
+	switch {
+	case isKubeResource(resourceID):
 		return s.workService.Get(ctx, resourceID)
+	case isDBResource(resourceID):
+		id := resourceID[len(constants.DefaultSourceID+"::"):]
+		return s.dbService.Get(ctx, id)
+	default:
+		return nil, fmt.Errorf("unknown resource ID format: %s", resourceID)
 	}
-	return s.dbService.Get(ctx, resourceID)
 }
 
 // List the cloudEvent from both kube and db service
@@ -67,14 +74,29 @@ func (s *RouterService) List(listOpts types.ListOptions) ([]*ce.Event, error) {
 
 // HandleStatusUpdate processes the resource status update from the agent.
 func (s *RouterService) HandleStatusUpdate(ctx context.Context, evt *ce.Event) error {
-	if isKubeResource(evt.Source()) {
+	if evt == nil {
+		return fmt.Errorf("event cannot be nil")
+	}
+	originalSource, err := cloudeventstypes.ToString(evt.Context.GetExtensions()[types.ExtensionOriginalSource])
+	if err != nil {
+		return fmt.Errorf("failed to get original source from event: %w", err)
+	}
+	switch {
+	case isKubeResource(originalSource):
+		// Handle the status update for kube resources
 		if err := s.workService.HandleStatusUpdate(ctx, evt); err != nil {
-			klog.Errorf("failed to handle status update for work resource %s: %v", evt.Source(), err)
-			return fmt.Errorf("failed to handle status update for work resource %s: %w", evt.Source(), err)
+			return fmt.Errorf("failed to handle kube resource status update: %w", err)
 		}
+	case isDBResource(originalSource):
+		// Handle the status update for db resources
+		if err := s.dbService.HandleStatusUpdate(ctx, evt); err != nil {
+			return fmt.Errorf("failed to handle db resource status update: %w", err)
+		}
+	default:
+		return fmt.Errorf("unknown resource original source: %s", originalSource)
 	}
 
-	return s.dbService.HandleStatusUpdate(ctx, evt)
+	return nil
 }
 
 // RegisterHandler registers the event handler for the RouterService.
@@ -94,14 +116,16 @@ func (w *RouterService) RegisterHandler(handler server.EventHandler) {
 func (w *RouterService) ControllerHandlerFuncs(handler server.EventHandler) map[api.EventType][]controllers.ControllerHandlerFunc {
 	return map[api.EventType][]controllers.ControllerHandlerFunc{
 		api.CreateEventType: {func(ctx context.Context, resourceID string) error {
-			return handler.OnCreate(ctx, payload.ManifestBundleEventDataType, resourceID)
-
+			id := generateDBResourceID(constants.DefaultSourceID, resourceID)
+			return handler.OnCreate(ctx, payload.ManifestBundleEventDataType, id)
 		}},
 		api.UpdateEventType: {func(ctx context.Context, resourceID string) error {
-			return handler.OnUpdate(ctx, payload.ManifestBundleEventDataType, resourceID)
+			id := generateDBResourceID(constants.DefaultSourceID, resourceID)
+			return handler.OnUpdate(ctx, payload.ManifestBundleEventDataType, id)
 		}},
 		api.DeleteEventType: {func(ctx context.Context, resourceID string) error {
-			return handler.OnDelete(ctx, payload.ManifestBundleEventDataType, resourceID)
+			id := generateDBResourceID(constants.DefaultSourceID, resourceID)
+			return handler.OnDelete(ctx, payload.ManifestBundleEventDataType, id)
 		}},
 	}
 }
@@ -115,7 +139,7 @@ func (w *RouterService) EventHandlerFuncs(handler server.EventHandler) *cache.Re
 				klog.Errorf("failed to get accessor for work %v", err)
 				return
 			}
-			id := generateResourceID(services.CloudEventsSourceKube, accessor.GetNamespace(), accessor.GetName())
+			id := generateKubeResourceID(services.CloudEventsSourceKube, accessor.GetNamespace(), accessor.GetName())
 			if err := handler.OnCreate(context.Background(), payload.ManifestBundleEventDataType, id); err != nil {
 				klog.Error(err)
 			}
@@ -126,7 +150,7 @@ func (w *RouterService) EventHandlerFuncs(handler server.EventHandler) *cache.Re
 				klog.Errorf("failed to get accessor for work %v", err)
 				return
 			}
-			id := generateResourceID(services.CloudEventsSourceKube, accessor.GetNamespace(), accessor.GetName())
+			id := generateKubeResourceID(services.CloudEventsSourceKube, accessor.GetNamespace(), accessor.GetName())
 			if err := handler.OnUpdate(context.Background(), payload.ManifestBundleEventDataType, id); err != nil {
 				klog.Error(err)
 			}
@@ -137,7 +161,7 @@ func (w *RouterService) EventHandlerFuncs(handler server.EventHandler) *cache.Re
 				klog.Errorf("failed to get accessor for work %v", err)
 				return
 			}
-			id := generateResourceID(services.CloudEventsSourceKube, accessor.GetNamespace(), accessor.GetName())
+			id := generateKubeResourceID(services.CloudEventsSourceKube, accessor.GetNamespace(), accessor.GetName())
 			if err := handler.OnDelete(context.Background(), payload.ManifestBundleEventDataType, id); err != nil {
 				klog.Error(err)
 			}
@@ -145,9 +169,14 @@ func (w *RouterService) EventHandlerFuncs(handler server.EventHandler) *cache.Re
 	}
 }
 
-func generateResourceID(source, namespace, name string) string {
+func generateKubeResourceID(source, namespace, name string) string {
 	// Generate a resource ID based on the source, namespace, and name
 	return fmt.Sprintf("%s::%s/%s", source, namespace, name)
+}
+
+func generateDBResourceID(source, uuid string) string {
+	// Generate a resource ID based on the source and uuid
+	return fmt.Sprintf("%s::%s", source, uuid)
 }
 
 func isKubeResource(resourceID string) bool {
@@ -157,4 +186,13 @@ func isKubeResource(resourceID string) bool {
 	// Check if the resourceID starts with "kube::" or is equal to the kube source indicating it's a kube resource
 	return resourceID == services.CloudEventsSourceKube ||
 		resourceID[:len(services.CloudEventsSourceKube+"::")] == services.CloudEventsSourceKube+"::"
+}
+
+func isDBResource(resourceID string) bool {
+	if len(resourceID) == 0 {
+		return false
+	}
+	// Check if the resourceID starts with "maestro::" or is equal to the maestro source indicating it's a DB resource
+	return resourceID == constants.DefaultSourceID ||
+		resourceID[:len(constants.DefaultSourceID+"::")] == constants.DefaultSourceID+"::"
 }
