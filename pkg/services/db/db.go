@@ -7,6 +7,7 @@ import (
 	ce "github.com/cloudevents/sdk-go/v2"
 	cetypes "github.com/cloudevents/sdk-go/v2/types"
 	"github.com/openshift-online/maestro/pkg/api"
+	"github.com/openshift-online/maestro/pkg/constants"
 	"github.com/openshift-online/maestro/pkg/services"
 	kubeerrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
@@ -237,7 +238,7 @@ func encodeResourceSpec(resource *api.Resource) (*ce.Event, error) {
 		Action:              types.EventAction("create_request"),
 	}
 	evt.SetType(eventType.String())
-	evt.SetSource("maestro")
+	evt.SetSource(constants.DefaultSourceID)
 	// TODO set resource.Source with a new extension attribute if the agent needs
 	evt.SetExtension(types.ExtensionResourceID, resource.ID)
 	evt.SetExtension(types.ExtensionResourceVersion, int64(resource.Version))
