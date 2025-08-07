@@ -3,7 +3,7 @@ module github.com/stolostron/cloudevents-conductor
 go 1.23.7
 
 require (
-	github.com/cloudevents/sdk-go/v2 v2.15.3-0.20250313141547-88bebb1fe04f
+	github.com/cloudevents/sdk-go/v2 v2.16.1
 	github.com/onsi/gomega v1.38.0
 	github.com/openshift-online/maestro v0.0.0-20250709041040-e7ae88b9e2bc
 	github.com/openshift/library-go v0.0.0-20250228164547-bad2d1bf3a37
@@ -129,7 +129,7 @@ require (
 	golang.org/x/sys v0.33.0 // indirect
 	golang.org/x/term v0.32.0 // indirect
 	golang.org/x/text v0.26.0 // indirect
-	golang.org/x/time v0.9.0 // indirect
+	golang.org/x/time v0.12.0 // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20250218202821-56aae31c358a // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20250218202821-56aae31c358a // indirect
 	google.golang.org/grpc v1.71.0 // indirect
