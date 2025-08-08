@@ -11,8 +11,10 @@ import (
 	"github.com/openshift/library-go/pkg/controller/controllercmd"
 	"github.com/spf13/pflag"
 	"github.com/stolostron/cloudevents-conductor/pkg/controller"
+	"github.com/stolostron/cloudevents-conductor/pkg/controller/mq"
 	"github.com/stolostron/cloudevents-conductor/pkg/services"
 	"github.com/stolostron/cloudevents-conductor/pkg/services/db"
+	"github.com/stolostron/cloudevents-conductor/pkg/services/db/consumer"
 	dbevent "github.com/stolostron/cloudevents-conductor/pkg/services/db/event"
 	"github.com/stolostron/cloudevents-conductor/pkg/services/db/resource"
 	dbstatusevent "github.com/stolostron/cloudevents-conductor/pkg/services/db/statusevent"
@@ -124,6 +126,16 @@ func (o *GRPCServerOptions) Run(ctx context.Context, controllerContext *controll
 	}
 
 	workService := work.NewWorkService(clients.WorkClient, clients.WorkInformers.Work().V1().ManifestWorks())
+
+	managedClusterController := controller.NewManagedClusterController(
+		clients.ClusterInformers.Cluster().V1().ManagedClusters(),
+		controllerContext.EventRecorder,
+		mq.NewMessageQueueAuthzCreator(),
+		consumer.NewConsumerService(sessionFactory),
+	)
+
+	// TODO: start the controller as a prehook of grpc server
+	go managedClusterController.Run(ctx, 1)
 
 	return grpcoptions.NewServer(serverOptions).WithPreStartHooks(ctrMgr).WithPreStartHooks(clients).WithAuthenticator(
 		grpcauthn.NewTokenAuthenticator(clients.KubeClient),
