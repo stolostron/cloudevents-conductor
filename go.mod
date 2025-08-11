@@ -8,10 +8,10 @@ require (
 	github.com/lib/pq v1.10.9
 	github.com/onsi/ginkgo/v2 v2.23.4
 	github.com/onsi/gomega v1.38.0
-	github.com/openshift-online/maestro v0.0.0-20250709041040-e7ae88b9e2bc
+	github.com/openshift-online/maestro v0.0.0-20250811080257-33cc27354e7c
 	github.com/openshift/library-go v0.0.0-20250228164547-bad2d1bf3a37
 	github.com/spf13/cobra v1.9.1
-	github.com/spf13/pflag v1.0.6
+	github.com/spf13/pflag v1.0.7
 	github.com/stretchr/testify v1.10.0
 	gopkg.in/yaml.v2 v2.4.0
 	gorm.io/datatypes v1.2.0
@@ -141,7 +141,7 @@ require (
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 // indirect
 	github.com/openshift-online/ocm-api-model/clientapi v0.0.422 // indirect
 	github.com/openshift-online/ocm-api-model/model v0.0.422 // indirect
-	github.com/openshift-online/ocm-common v0.0.28 // indirect
+	github.com/openshift-online/ocm-common v0.0.30 // indirect
 	github.com/openshift-online/ocm-sdk-go v0.1.471 // indirect
 	github.com/openshift/api v0.0.0-20250124212313-a770960d61e0 // indirect
 	github.com/openshift/client-go v0.0.0-20250125113824-8e1f0b8fa9a7 // indirect
@@ -212,7 +212,7 @@ require (
 	google.golang.org/genproto/googleapis/api v0.0.0-20250218202821-56aae31c358a // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20250218202821-56aae31c358a // indirect
 	google.golang.org/grpc v1.71.0 // indirect
-	google.golang.org/protobuf v1.36.6 // indirect
+	google.golang.org/protobuf v1.36.7 // indirect
 	gopkg.in/evanphx/json-patch.v4 v4.12.0 // indirect
 	gopkg.in/inf.v0 v0.9.1 // indirect
 	gopkg.in/natefinch/lumberjack.v2 v2.2.1 // indirect
@@ -236,5 +236,3 @@ require (
 	sigs.k8s.io/structured-merge-diff/v4 v4.6.0 // indirect
 	sigs.k8s.io/yaml v1.4.0 // indirect
 )
-
-replace github.com/openshift-online/maestro => github.com/morvencao/openshift-online-maestro v0.0.0-20250731111539-254ca278d81f
