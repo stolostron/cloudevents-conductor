@@ -179,6 +179,7 @@ func generateDBResourceID(source, uuid string) string {
 	return fmt.Sprintf("%s::%s", source, uuid)
 }
 
+// isKubeResource checks if the resourceID is a Kubernetes resource.
 func isKubeResource(resourceID string) bool {
 	if len(resourceID) == 0 {
 		return false
@@ -188,6 +189,7 @@ func isKubeResource(resourceID string) bool {
 		resourceID[:len(services.CloudEventsSourceKube+"::")] == services.CloudEventsSourceKube+"::"
 }
 
+// isDBResource checks if the resourceID is a DB resource.
 func isDBResource(resourceID string) bool {
 	if len(resourceID) == 0 {
 		return false
