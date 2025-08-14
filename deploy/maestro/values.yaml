@@ -1,0 +1,19 @@
+# Default values for Maestro.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+global:
+  imageOverrides:
+    maestroImage: quay.io/redhat-user-workloads/maestro-rhtap-tenant/maestro/maestro:fc8d1980eefb719d5205a383f7665e6dc8b937cc
+    postgresImage: quay.io/maestro/postgres:17.2
+  imagePullPolicy: IfNotPresent
+  pullSecret: ""
+  namespace: maestro
+
+maestro:
+  replicas: 1
+  logLevel: 2
+
+database:
+  useExternalDB: false
+  storage: 1Gi
