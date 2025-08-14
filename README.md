@@ -56,7 +56,7 @@ helm install klusterlet ocm/klusterlet \
     --create-namespace
 ```
 
-4. Accept you managedcluster on your hub
+4. Accept your managedcluster on your hub
 
 ```sh
 kubectl patch managedcluster <your-managedcluster-name> -p='{\"spec\":{\"hubAcceptsClient\":true}}' --type=merge
