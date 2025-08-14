@@ -3,7 +3,7 @@
 set -o errexit
 
 # TODO using conductor image
-cloudevents_conductor_image="${1:-quay.io/open-cluster-management/registration:latest}"
+cloudevents_conductor_image="${1:-quay.io/redhat-user-workloads/crt-redhat-acm-tenant/cloudevents-conductor-main@sha256:1223a7fab5cf306638711baf2d3906848146803d7e538782151fac7ea4fd3caf}"
 
 echo "Prepare the cloudevents-conductor configuration"
 db_pw=$(kubectl -n maestro get secret maestro-db-config -o jsonpath='{.data.password}' | base64 -d)
