@@ -19,7 +19,7 @@ The diagram shows how the Cloudevents Conductor acts as a central place, coordin
 1. Run following command to deploy Maestro on your hub
 
 ```sh
-helm install maestro .deploy/maestro
+helm install maestro deploy/maestro
 ```
 
 2. Run following command to deploy the `cloudevents-conductor` on your hub
