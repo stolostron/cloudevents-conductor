@@ -1,0 +1,16 @@
+{{- if not .Values.database.useExternalDB -}}
+apiVersion: v1
+kind: Service
+metadata:
+  name: maestro-db
+  namespace: '{{ .Values.global.namespace }}'
+spec:
+  ports:
+  - name: postgresql
+    port: 5432
+    protocol: TCP
+    targetPort: 5432
+  selector:
+    name: maestro-db
+  type: ClusterIP
+{{- end -}}

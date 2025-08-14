@@ -11,3 +11,54 @@ The diagram shows how the Cloudevents Conductor acts as a central place, coordin
 <p align="center">
     <img src="./overview.png" alt="Cloudevents Conductor" width="70%">
 </p>
+
+## Deploy
+
+### Deploy the cloudevents-conductor on your hub
+
+1. Run following command to deploy Maestro on your hub
+
+```sh
+helm install maestro .deploy/maestro
+```
+
+2. Run following command to deploy the `cloudevents-conductor` on your hub
+
+```sh
+deploy/conductor/install.sh
+```
+
+### Import your managed cluster
+
+1. Prepare the bootstrap configs from your hub
+
+```sh
+deploy/managedcluster/hub.sh <your-managedcluster-name>
+```
+
+2. Create bootstrap secret on your managedcluster
+
+```sh
+deploy/managedcluster/spoke.sh
+```
+
+3. Install klusterlet on your managedcluster
+
+```sh
+helm repo add ocm https://open-cluster-management.io/helm-charts
+helm repo update
+helm search repo ocm
+
+helm install klusterlet ocm/klusterlet \
+    --set klusterlet.clusterName=<your-managedcluster-name> \
+    --set klusterlet.registrationConfiguration.registrationDriver.authType=grpc \
+    --namespace=open-cluster-management \
+    --create-namespace
+```
+
+4. Accept your managedcluster on your hub
+
+```sh
+kubectl patch managedcluster <your-managedcluster-name> -p='{\"spec\":{\"hubAcceptsClient\":true}}' --type=merge
+kubectl get csr -l open-cluster-management.io/cluster-name=<your-managedcluster-name> | grep Pending | awk '{print \$1}' | xargs kubectl certificate approve
+```
