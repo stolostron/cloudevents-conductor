@@ -4,4 +4,7 @@ vendor/
 *.out
 bin/
 
+test/e2e/.kubeconfig
+test/e2e/ocm
+test/e2e/report/*
 deploy/managedcluster/config

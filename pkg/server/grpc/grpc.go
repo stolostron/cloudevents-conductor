@@ -42,12 +42,12 @@ import (
 // An example of this configuration is like:
 /*
 ```yaml
-grpcConfig:
+grpc_config:
   tls_cert_file: "/path/to/tls.crt"
   tls_key_file: "/path/to/tls.key"
   client_ca_file: "/path/to/ca.crt"
   serverBindPort: "8090"
-dbConfig:
+db_config:
   host: "localhost"
   port: "5432"
   name: "foo"

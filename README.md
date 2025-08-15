@@ -33,7 +33,8 @@ deploy/conductor/install.sh
 1. Prepare the bootstrap configs from your hub
 
 ```sh
-deploy/managedcluster/hub.sh <your-managedcluster-name>
+grpc_server=$(kubectl -n open-cluster-management-hub get route grpc-server -o jsonpath='{.spec.host}')
+deploy/managedcluster/hub.sh <your-managedcluster-name> ${grpc_server}
 ```
 
 2. Create bootstrap secret on your managedcluster
