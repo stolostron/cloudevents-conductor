@@ -13,13 +13,13 @@ metadata:
   name: grpc-server-config
 data:
   config.yaml: |
-    grpcConfig:
+    grpc_config:
       tls_cert_file: /var/run/secrets/hub/grpc/serving-cert/tls.crt
-      tls_key_file: /var/run/secrets/hub/grpc/serving-cert/key.crt
+      tls_key_file: /var/run/secrets/hub/grpc/serving-cert/tls.key
       client_ca_file: /var/run/secrets/hub/grpc/ca/ca-bundle.crt
-    dbConfig:
+    db_config:
       host: maestro-db.maestro
-      port: '5432'
+      port: 5432
       name: maestro
       username: maestro
       password: ${db_pw}

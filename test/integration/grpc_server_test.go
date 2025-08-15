@@ -7,10 +7,10 @@ import (
 	"path"
 	"time"
 
-	"github.com/onsi/ginkgo/v2"
-	"github.com/onsi/gomega"
+	. "github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/gomega"
 	"github.com/openshift-online/maestro/pkg/constants"
-	"github.com/stolostron/cloudevents-conductor/test/integration/helper"
+	"github.com/stolostron/cloudevents-conductor/test/helper"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -33,7 +33,7 @@ import (
 
 const grpcTest = "grpctest"
 
-var _ = ginkgo.Describe("Registration and apply work using GRPC", ginkgo.Ordered, ginkgo.Label("grpc-test"), func() {
+var _ = Describe("Registration and apply work using GRPC", Ordered, Label("grpc-test"), func() {
 	var err error
 
 	var postfix string
@@ -48,8 +48,8 @@ var _ = ginkgo.Describe("Registration and apply work using GRPC", ginkgo.Ordered
 	var resourceID string
 	var work *workv1.ManifestWork
 
-	ginkgo.Context("ManagedCluster registration", func() {
-		ginkgo.BeforeEach(func() {
+	Context("ManagedCluster registration", func() {
+		BeforeEach(func() {
 			postfix = rand.String(5)
 
 			managedClusterName = fmt.Sprintf("%s-managedcluster-grpc-%s", grpcTest, postfix)
@@ -81,8 +81,8 @@ var _ = ginkgo.Describe("Registration and apply work using GRPC", ginkgo.Ordered
 					Name: managedClusterName,
 				},
 			}, metav1.CreateOptions{})
-			gomega.Expect(err).ToNot(gomega.HaveOccurred())
-			gomega.Expect(ns).ToNot(gomega.BeNil())
+			Expect(err).ToNot(HaveOccurred())
+			Expect(ns).ToNot(BeNil())
 
 			grpcCommOptions := commonoptions.NewAgentOptions()
 			grpcCommOptions.HubKubeconfigDir = hubGRPCConfigDir
@@ -91,42 +91,42 @@ var _ = ginkgo.Describe("Registration and apply work using GRPC", ginkgo.Ordered
 			stopGRPCWorkAgent = runWorkAgent(fmt.Sprintf("%s-grpc-work-agent", grpcTest), grpcWorkAgentOptions, grpcCommOptions, spokeCfg)
 		})
 
-		ginkgo.AfterEach(func() {
+		AfterEach(func() {
 			stopGRPCRegistrationAgent()
 			stopGRPCWorkAgent()
 		})
 
-		ginkgo.It("should register managedclusters and apply manifestwork with grpc successfully", func() {
-			ginkgo.By("getting managedclusters and csrs after bootstrap", func() {
+		It("should register managedclusters and apply manifestwork with grpc successfully", func() {
+			By("getting managedclusters and csrs after bootstrap", func() {
 				assertManagedCluster(managedClusterName)
 			})
 
 			// simulate hub cluster admin to accept the managedcluster and approve the csr
-			ginkgo.By("accept managedclusters and approve csrs", func() {
+			By("accept managedclusters and approve csrs", func() {
 				err = util.AcceptManagedCluster(hubClusterClient, managedClusterName)
-				gomega.Expect(err).NotTo(gomega.HaveOccurred())
+				Expect(err).NotTo(HaveOccurred())
 
 				// for gpc, the hub controller will sign the client certs, we just approve
 				// the csr here
 				csr, err := util.FindUnapprovedSpokeCSR(hubKubeClient, managedClusterName)
-				gomega.Expect(err).NotTo(gomega.HaveOccurred())
+				Expect(err).NotTo(HaveOccurred())
 
 				err = util.ApproveCSR(hubKubeClient, csr)
-				gomega.Expect(err).NotTo(gomega.HaveOccurred())
+				Expect(err).NotTo(HaveOccurred())
 			})
 
-			ginkgo.By("getting managedclusters joined condition", func() {
+			By("getting managedclusters joined condition", func() {
 				assertManagedClusterJoined(managedClusterName, hubGRPCConfigSecret)
 			})
 
-			ginkgo.By("getting managedclusters available condition constantly", func() {
+			By("getting managedclusters available condition constantly", func() {
 				// after two short grace period, make sure the managed cluster is available
 				gracePeriod := 2 * 5 * util.TestLeaseDurationSeconds
 				assertAvailableCondition(managedClusterName, metav1.ConditionTrue, gracePeriod)
 			})
 
-			ginkgo.By("getting consumer for the managedcluster", func() {
-				gomega.Eventually(func() error {
+			By("getting consumer for the managedcluster", func() {
+				Eventually(func() error {
 					consumerList, resp, err := openAPIClient.DefaultApi.ApiMaestroV1ConsumersGet(context.Background()).Execute()
 					if err != nil {
 						return fmt.Errorf("failed to get consumers: %v, response: %v", err, resp)
@@ -143,33 +143,33 @@ var _ = ginkgo.Describe("Registration and apply work using GRPC", ginkgo.Ordered
 						}
 					}
 					return fmt.Errorf("consumer for managed cluster %s not found", managedClusterName)
-				}, eventuallyTimeout, eventuallyInterval).ShouldNot(gomega.HaveOccurred())
+				}, eventuallyTimeout, eventuallyInterval).ShouldNot(HaveOccurred())
 			})
 
-			ginkgo.By("creating manifestwork from db", func() {
+			By("creating manifestwork from db", func() {
 				res, err := helper.NewResource(managedClusterName, constants.DefaultSourceID, 1, 1)
-				gomega.Expect(err).ToNot(gomega.HaveOccurred())
-				gomega.Expect(res).ToNot(gomega.BeNil())
+				Expect(err).ToNot(HaveOccurred())
+				Expect(res).ToNot(BeNil())
 				res, svcErr := resourceService.Create(context.Background(), res)
-				gomega.Expect(svcErr).ToNot(gomega.HaveOccurred())
-				gomega.Expect(res).ToNot(gomega.BeNil())
+				Expect(svcErr).ToNot(HaveOccurred())
+				Expect(res).ToNot(BeNil())
 				resourceID = res.ID
 
-				gomega.Eventually(func() error {
+				Eventually(func() error {
 					_, err := spokeKubeClient.AppsV1().Deployments("default").
 						Get(context.Background(), "nginx", metav1.GetOptions{})
 					return err
-				}, eventuallyTimeout, eventuallyInterval).ShouldNot(gomega.HaveOccurred())
+				}, eventuallyTimeout, eventuallyInterval).ShouldNot(HaveOccurred())
 
 				deploy, err := spokeKubeClient.AppsV1().Deployments("default").
 					Get(context.Background(), "nginx", metav1.GetOptions{})
-				gomega.Expect(err).ToNot(gomega.HaveOccurred())
+				Expect(err).ToNot(HaveOccurred())
 				for _, entry := range deploy.ManagedFields {
-					gomega.Expect(entry.Manager).To(gomega.Equal("work-agent"))
+					Expect(entry.Manager).To(Equal("work-agent"))
 				}
-				gomega.Expect(*deploy.Spec.Replicas).To(gomega.Equal(int32(1)))
+				Expect(*deploy.Spec.Replicas).To(Equal(int32(1)))
 
-				gomega.Eventually(func() error {
+				Eventually(func() error {
 					resList, resp, err := openAPIClient.DefaultApi.ApiMaestroV1ResourceBundlesGet(context.Background()).Execute()
 					if err != nil {
 						return fmt.Errorf("failed to get resource bundles: %v, response: %v", err, resp)
@@ -189,19 +189,19 @@ var _ = ginkgo.Describe("Registration and apply work using GRPC", ginkgo.Ordered
 						return fmt.Errorf("resource bundle for managed cluster %s has no status", managedClusterName)
 					}
 					return nil
-				}, eventuallyTimeout, eventuallyInterval).ShouldNot(gomega.HaveOccurred())
+				}, eventuallyTimeout, eventuallyInterval).ShouldNot(HaveOccurred())
 			})
 
-			ginkgo.By("updating manifestwork from db", func() {
+			By("updating manifestwork from db", func() {
 				res, err := helper.NewResource(managedClusterName, constants.DefaultSourceID, 2, 1)
 				res.ID = resourceID
-				gomega.Expect(err).ToNot(gomega.HaveOccurred())
-				gomega.Expect(res).ToNot(gomega.BeNil())
+				Expect(err).ToNot(HaveOccurred())
+				Expect(res).ToNot(BeNil())
 				res, svcErr := resourceService.Update(context.Background(), res)
-				gomega.Expect(svcErr).ToNot(gomega.HaveOccurred())
-				gomega.Expect(res).ToNot(gomega.BeNil())
+				Expect(svcErr).ToNot(HaveOccurred())
+				Expect(res).ToNot(BeNil())
 
-				gomega.Eventually(func() error {
+				Eventually(func() error {
 					deploy, err := spokeKubeClient.AppsV1().Deployments("default").
 						Get(context.Background(), "nginx", metav1.GetOptions{})
 					if err != nil {
@@ -214,13 +214,13 @@ var _ = ginkgo.Describe("Registration and apply work using GRPC", ginkgo.Ordered
 						return fmt.Errorf("expected 2 replicas, got %d", *deploy.Spec.Replicas)
 					}
 					return nil
-				}, eventuallyTimeout, eventuallyInterval).ShouldNot(gomega.HaveOccurred())
+				}, eventuallyTimeout, eventuallyInterval).ShouldNot(HaveOccurred())
 			})
 
-			ginkgo.By("deleting manifestwork with grpc", func() {
+			By("deleting manifestwork with grpc", func() {
 				svcErr := resourceService.MarkAsDeleting(context.Background(), resourceID)
-				gomega.Expect(svcErr).ToNot(gomega.HaveOccurred())
-				gomega.Eventually(func() error {
+				Expect(svcErr).ToNot(HaveOccurred())
+				Eventually(func() error {
 					_, err := spokeKubeClient.AppsV1().Deployments("default").
 						Get(context.Background(), "nginx", metav1.GetOptions{})
 					if err == nil {
@@ -230,9 +230,9 @@ var _ = ginkgo.Describe("Registration and apply work using GRPC", ginkgo.Ordered
 						return nil
 					}
 					return err
-				}, eventuallyTimeout, eventuallyInterval).Should(gomega.HaveOccurred())
+				}, eventuallyTimeout, eventuallyInterval).Should(HaveOccurred())
 
-				gomega.Eventually(func() error {
+				Eventually(func() error {
 					resList, resp, err := openAPIClient.DefaultApi.ApiMaestroV1ResourceBundlesGet(context.Background()).Execute()
 					if err != nil {
 						return fmt.Errorf("failed to get resource bundles: %v, response: %v", err, resp)
@@ -244,32 +244,32 @@ var _ = ginkgo.Describe("Registration and apply work using GRPC", ginkgo.Ordered
 						return fmt.Errorf("resource bundles still exist after deletion")
 					}
 					return nil
-				}, eventuallyTimeout, eventuallyInterval).ShouldNot(gomega.HaveOccurred())
+				}, eventuallyTimeout, eventuallyInterval).ShouldNot(HaveOccurred())
 			})
 
-			ginkgo.By("creating manifestwork from kube", func() {
+			By("creating manifestwork from kube", func() {
 				var err error
 				work, err = helper.NewManifestWork(managedClusterName, "", 1)
-				gomega.Expect(err).ToNot(gomega.HaveOccurred())
+				Expect(err).ToNot(HaveOccurred())
 				work, err = hubWorkClient.WorkV1().ManifestWorks(managedClusterName).Create(context.Background(), work, metav1.CreateOptions{})
-				gomega.Expect(err).ToNot(gomega.HaveOccurred())
+				Expect(err).ToNot(HaveOccurred())
 
-				gomega.Eventually(func() error {
+				Eventually(func() error {
 					_, err := spokeKubeClient.AppsV1().Deployments("default").
 						Get(context.Background(), "nginx", metav1.GetOptions{})
 					return err
-				}, eventuallyTimeout, eventuallyInterval).ShouldNot(gomega.HaveOccurred())
+				}, eventuallyTimeout, eventuallyInterval).ShouldNot(HaveOccurred())
 
 				deploy, err := spokeKubeClient.AppsV1().Deployments("default").
 					Get(context.Background(), "nginx", metav1.GetOptions{})
-				gomega.Expect(err).ToNot(gomega.HaveOccurred())
+				Expect(err).ToNot(HaveOccurred())
 				for _, entry := range deploy.ManagedFields {
-					gomega.Expect(entry.Manager).To(gomega.Equal("work-agent"))
+					Expect(entry.Manager).To(Equal("work-agent"))
 				}
-				gomega.Expect(*deploy.Spec.Replicas).To(gomega.Equal(int32(1)))
+				Expect(*deploy.Spec.Replicas).To(Equal(int32(1)))
 
 				// ensure status is updated on hub work client
-				gomega.Eventually(func() error {
+				Eventually(func() error {
 					updatedWork, err := hubWorkClient.WorkV1().ManifestWorks(managedClusterName).Get(context.Background(), work.Name, metav1.GetOptions{})
 					if err != nil {
 						return fmt.Errorf("failed to get manifestwork: %v", err)
@@ -278,27 +278,27 @@ var _ = ginkgo.Describe("Registration and apply work using GRPC", ginkgo.Ordered
 						return fmt.Errorf("manifestwork status is not updated")
 					}
 					return nil
-				}, eventuallyTimeout, eventuallyInterval).ShouldNot(gomega.HaveOccurred())
+				}, eventuallyTimeout, eventuallyInterval).ShouldNot(HaveOccurred())
 			})
 
-			ginkgo.By("updating manifestwork from kube", func() {
+			By("updating manifestwork from kube", func() {
 				newManifests, err := helper.NewManifests("default", "nginx", 2)
-				gomega.Expect(err).ToNot(gomega.HaveOccurred())
+				Expect(err).ToNot(HaveOccurred())
 
 				updatedWork, err := hubWorkClient.WorkV1().ManifestWorks(managedClusterName).Get(context.Background(), work.Name, metav1.GetOptions{})
-				gomega.Expect(err).ToNot(gomega.HaveOccurred())
+				Expect(err).ToNot(HaveOccurred())
 
 				newWork := updatedWork.DeepCopy()
 				newWork.Spec.Workload.Manifests = newManifests
 
 				pathBytes, err := util.NewWorkPatch(updatedWork, newWork)
-				gomega.Expect(err).ToNot(gomega.HaveOccurred())
+				Expect(err).ToNot(HaveOccurred())
 
 				_, err = hubWorkClient.WorkV1().ManifestWorks(managedClusterName).Patch(
 					context.Background(), updatedWork.Name, types.MergePatchType, pathBytes, metav1.PatchOptions{})
-				gomega.Expect(err).ToNot(gomega.HaveOccurred())
+				Expect(err).ToNot(HaveOccurred())
 
-				gomega.Eventually(func() error {
+				Eventually(func() error {
 					deploy, err := spokeKubeClient.AppsV1().Deployments("default").
 						Get(context.Background(), "nginx", metav1.GetOptions{})
 					if err != nil {
@@ -311,14 +311,14 @@ var _ = ginkgo.Describe("Registration and apply work using GRPC", ginkgo.Ordered
 						return fmt.Errorf("expected 2 replicas, got %d", *deploy.Spec.Replicas)
 					}
 					return nil
-				}, eventuallyTimeout, eventuallyInterval).ShouldNot(gomega.HaveOccurred())
+				}, eventuallyTimeout, eventuallyInterval).ShouldNot(HaveOccurred())
 			})
 
-			ginkgo.By("deleting manifestwork from kube", func() {
+			By("deleting manifestwork from kube", func() {
 				err = hubWorkClient.WorkV1().ManifestWorks(managedClusterName).Delete(context.Background(), work.Name, metav1.DeleteOptions{})
-				gomega.Expect(err).ToNot(gomega.HaveOccurred())
+				Expect(err).ToNot(HaveOccurred())
 
-				gomega.Eventually(func() error {
+				Eventually(func() error {
 					_, err := spokeKubeClient.AppsV1().Deployments("default").
 						Get(context.Background(), "nginx", metav1.GetOptions{})
 					if err == nil {
@@ -328,29 +328,29 @@ var _ = ginkgo.Describe("Registration and apply work using GRPC", ginkgo.Ordered
 						return nil
 					}
 					return err
-				}, eventuallyTimeout, eventuallyInterval).Should(gomega.HaveOccurred())
+				}, eventuallyTimeout, eventuallyInterval).Should(HaveOccurred())
 			})
 		})
 	})
 })
 
 func assertManagedCluster(clusterName string) {
-	gomega.Eventually(func() error {
+	Eventually(func() error {
 		if _, err := util.GetManagedCluster(hubClusterClient, clusterName); err != nil {
 			return err
 		}
 		return nil
-	}, eventuallyTimeout, eventuallyInterval).ShouldNot(gomega.HaveOccurred())
+	}, eventuallyTimeout, eventuallyInterval).ShouldNot(HaveOccurred())
 
-	gomega.Eventually(func() error {
+	Eventually(func() error {
 		if _, err := util.FindUnapprovedSpokeCSR(hubKubeClient, clusterName); err != nil {
 			return err
 		}
 		return nil
-	}, eventuallyTimeout, eventuallyInterval).ShouldNot(gomega.HaveOccurred())
+	}, eventuallyTimeout, eventuallyInterval).ShouldNot(HaveOccurred())
 
 	// the spoke cluster should has finalizer that is added by hub controller
-	gomega.Eventually(func() error {
+	Eventually(func() error {
 		spokeCluster, err := util.GetManagedCluster(hubClusterClient, clusterName)
 		if err != nil {
 			return err
@@ -361,12 +361,12 @@ func assertManagedCluster(clusterName string) {
 		}
 
 		return nil
-	}, eventuallyTimeout, eventuallyInterval).ShouldNot(gomega.HaveOccurred())
+	}, eventuallyTimeout, eventuallyInterval).ShouldNot(HaveOccurred())
 }
 
 func assertManagedClusterJoined(clusterName, hubConfigSecret string) {
 	// the managed cluster should have accepted condition after it is accepted
-	gomega.Eventually(func() error {
+	Eventually(func() error {
 		spokeCluster, err := util.GetManagedCluster(hubClusterClient, clusterName)
 		if err != nil {
 			return err
@@ -375,16 +375,16 @@ func assertManagedClusterJoined(clusterName, hubConfigSecret string) {
 			return fmt.Errorf("cluster should be accepted")
 		}
 		return nil
-	}, eventuallyTimeout, eventuallyInterval).ShouldNot(gomega.HaveOccurred())
+	}, eventuallyTimeout, eventuallyInterval).ShouldNot(HaveOccurred())
 
 	// the hub kubeconfig secret should be filled after the csr is approved
-	gomega.Eventually(func() error {
+	Eventually(func() error {
 		_, err := util.GetFilledHubKubeConfigSecret(hubKubeClient, testNamespace, hubConfigSecret)
 		return err
-	}, eventuallyTimeout, eventuallyInterval).ShouldNot(gomega.HaveOccurred())
+	}, eventuallyTimeout, eventuallyInterval).ShouldNot(HaveOccurred())
 
 	// the spoke cluster should have joined condition finally
-	gomega.Eventually(func() error {
+	Eventually(func() error {
 		spokeCluster, err := util.GetManagedCluster(hubClusterClient, clusterName)
 		if err != nil {
 			return err
@@ -393,12 +393,12 @@ func assertManagedClusterJoined(clusterName, hubConfigSecret string) {
 			return fmt.Errorf("cluster should be joined")
 		}
 		return nil
-	}, eventuallyTimeout, eventuallyInterval).ShouldNot(gomega.HaveOccurred())
+	}, eventuallyTimeout, eventuallyInterval).ShouldNot(HaveOccurred())
 }
 
 func assertAvailableCondition(managedClusterName string, status metav1.ConditionStatus, d int) {
 	<-time.After(time.Duration(d) * time.Second)
-	gomega.Eventually(func() error {
+	Eventually(func() error {
 		managedCluster, err := util.GetManagedCluster(hubClusterClient, managedClusterName)
 		if err != nil {
 			return err
@@ -411,5 +411,5 @@ func assertAvailableCondition(managedClusterName string, status metav1.Condition
 			return fmt.Errorf("expected avaibale condition is %s, but %v", status, availableCond)
 		}
 		return nil
-	}, eventuallyTimeout, eventuallyInterval).ShouldNot(gomega.HaveOccurred())
+	}, eventuallyTimeout, eventuallyInterval).ShouldNot(HaveOccurred())
 }
