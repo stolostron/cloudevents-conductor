@@ -8,7 +8,7 @@ image_name="${image_name:-cloudevents-conductor}"
 image_tag="${image_tag:-$(date +%s)}"
 managed_cluster_name="cluster1"
 
-kind_version=0.12.0
+kind_version=0.29.0
 if ! command -v kind >/dev/null 2>&1; then
     echo "This script will install kind (https://kind.sigs.k8s.io/) on your machine."
     curl -Lo ./kind-amd64 "https://kind.sigs.k8s.io/dl/v${kind_version}/kind-$(uname)-amd64"
