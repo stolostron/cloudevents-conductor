@@ -4,6 +4,7 @@ CURRENT_DIR="$(dirname "${BASH_SOURCE[0]}")"
 CURRENT_DIR="$(cd ${CURRENT_DIR} && pwd)"
 
 cluster_name="${1:-cluster1}"
+grpc_server="${2:-cluster-manager-grpc-server.open-cluster-management-hub.svc:8090}"
 
 echo "Prepare bootstrap config for $cluster_name"
 
@@ -37,9 +38,8 @@ openssl x509 -req \
   -extfile $CURRENT_DIR/config/ext.conf
 
 # prepare grpc bootstrap config
-host=$(kubectl -n open-cluster-management-hub get route grpc-server -o jsonpath='{.spec.host}')
 cat << EOF > $CURRENT_DIR/config/bootstrap.grpcconfig
-url: ${host}
+url: ${grpc_server}
 caFile: /spoke/bootstrap/ca.crt
 clientCertFile: /spoke/bootstrap/client.crt
 clientKeyFile: /spoke/bootstrap/client.key
