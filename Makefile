@@ -75,7 +75,11 @@ test-e2e: test-e2e/teardown test-e2e/setup test-e2e/run
 .PHONY: test-e2e
 
 image: fmt verify
-	$(container_tool) build -f Containerfile -t "$(image_repository)/$(image_name):$(image_tag)" .
+ifdef BASE_IMAGE
+	$(container_tool) build -f Containerfile.konflux --build-arg BASE_IMAGE=$(BASE_IMAGE) -t "$(image_repository)/$(image_name):$(image_tag)" .
+else
+	$(container_tool) build -f Containerfile.konflux -t "$(image_repository)/$(image_name):$(image_tag)" .
+endif
 .PHONY: image
 
 push: image

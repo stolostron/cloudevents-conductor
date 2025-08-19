@@ -1,8 +1,11 @@
 # Copyright (c) 2025 Red Hat, Inc.
 # Copyright Contributors to the Open Cluster Management project
 
+# make base image configurable
+ARG BASE_IMAGE=brew.registry.redhat.io/rh-osbs/openshift-golang-builder:rhel_9_1.23
+
 # Stage 1: build the target binaries
-FROM brew.registry.redhat.io/rh-osbs/openshift-golang-builder:rhel_9_1.23 AS builder
+FROM ${BASE_IMAGE} AS builder
 
 WORKDIR /workspace
 COPY go.sum go.mod ./
@@ -32,7 +35,7 @@ LABEL maintainer="['acm-component-maintainers@redhat.com']"
 LABEL description="multicluster cloudevents conductor"
 
 ARG GIT_COMMIT
-ENV CONDUCTOR=/usr/local/bin/conductor \
+ENV CONDUCTOR=/server \
   USER_UID=1001 \
   USER_NAME=conductor \
   GIT_COMMIT=${GIT_COMMIT}
@@ -41,4 +44,3 @@ ENV CONDUCTOR=/usr/local/bin/conductor \
 COPY --from=builder /workspace/bin/conductor ${CONDUCTOR}
 
 USER ${USER_UID}
-ENTRYPOINT ["/usr/local/bin/conductor"]

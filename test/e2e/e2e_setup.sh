@@ -33,7 +33,7 @@ EOF
 fi
 
 # 2. build conductor image and load to KinD cluster
-image_tag=${image_tag} make image
+image_tag=${image_tag} BASE_IMAGE=golang:1.23 make image
   # related issue: https://github.com/kubernetes-sigs/kind/issues/2038
 if command -v docker &> /dev/null; then
     kind load docker-image ${image_repository}/${image_name}:${image_tag} --name cloudevents-conductor-e2e
@@ -49,8 +49,9 @@ fi
 # 3. deploy maestro
 helm install maestro ${CURRENT_DIR}/../../deploy/maestro
 
-# wait until maestro-db deployment is available
+# wait until maestro deployment available
 kubectl wait --for=condition=available --timeout=120s deployment/maestro-db -n maestro
+kubectl wait --for=condition=available --timeout=120s deployment/maestro -n maestro
 
 # patch maestro services to be access externally
 kubectl patch service maestro -n maestro \
@@ -97,6 +98,21 @@ EOF
 # wait until grpc-server deployment is available
 kubectl wait --for=condition=available --timeout=120s deployment/cluster-manager-grpc-server -n open-cluster-management-hub
 
+# wait until grpc-server logs contain 8090 port
+timeout=120
+start=$(date +%s)
+while true; do
+  if kubectl logs deployment/cluster-manager-grpc-server -n open-cluster-management-hub | grep -q "8090"; then
+    break
+  fi
+  now=$(date +%s)
+  if [ $((now - start)) -ge $timeout ]; then
+    echo "Timed out waiting for '8090' in grpc server logs"
+    exit 1
+  fi
+  sleep 5
+done
+
 # 6. prepare bootstrap config for managed cluster
 ${CURRENT_DIR}/../../deploy/managedcluster/hub.sh ${managed_cluster_name}
 
@@ -116,17 +132,19 @@ kubectl wait --for=condition=available --timeout=120s klusterlet/klusterlet
 # wait until klusterlet-agent deployment is available
 kubectl wait --for=condition=available --timeout=120s deployment/klusterlet-agent -n open-cluster-management-agent
 
-timeout=120
-end=$((SECONDS + timeout))
-
-while ! kubectl get managedcluster ${managed_cluster_name} &>/dev/null; do
-  if (( SECONDS >= end )); then
+# wait until managedcluster is created
+start=$(date +%s)
+while true; do
+  if kubectl get managedcluster ${managed_cluster_name} &>/dev/null; then
+    break
+  fi
+  now=$(date +%s)
+  if [ $((now - start)) -ge $timeout ]; then
     echo "Timed out waiting for managedcluster ${managed_cluster_name} creation"
     exit 1
   fi
-  sleep 1
+  sleep 5
 done
-
 echo "managedcluster ${managed_cluster_name} created!"
 
 # 9. accept your managedcluster on your hub
