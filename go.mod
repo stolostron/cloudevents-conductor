@@ -10,8 +10,8 @@ require (
 	github.com/onsi/gomega v1.38.0
 	github.com/openshift-online/maestro v0.0.0-20250811080257-33cc27354e7c
 	github.com/openshift/library-go v0.0.0-20250228164547-bad2d1bf3a37
-	github.com/spf13/cobra v1.9.1
-	github.com/spf13/pflag v1.0.7
+	github.com/spf13/cobra v1.10.1
+	github.com/spf13/pflag v1.0.9
 	github.com/stretchr/testify v1.10.0
 	gopkg.in/yaml.v2 v2.4.0
 	gorm.io/datatypes v1.2.0
