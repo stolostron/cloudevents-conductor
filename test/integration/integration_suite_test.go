@@ -17,25 +17,26 @@ import (
 	"github.com/openshift/library-go/pkg/controller/controllercmd"
 	"github.com/stolostron/cloudevents-conductor/test/integration/testpostgres"
 	"gopkg.in/yaml.v2"
+	rbacv1 "k8s.io/api/rbac/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/transport"
 	"k8s.io/klog/v2"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
+	"github.com/stolostron/cloudevents-conductor/pkg/server/grpc"
+	"github.com/stolostron/cloudevents-conductor/test/integration/maestro"
 	clusterclientset "open-cluster-management.io/api/client/cluster/clientset/versioned"
 	workclientset "open-cluster-management.io/api/client/work/clientset/versioned"
 	clusterv1 "open-cluster-management.io/api/cluster/v1"
 	ocmfeature "open-cluster-management.io/api/feature"
+	operatorapiv1 "open-cluster-management.io/api/operator/v1"
 	workv1 "open-cluster-management.io/api/work/v1"
-	grpcoptions "open-cluster-management.io/sdk-go/pkg/cloudevents/server/grpc/options"
-
-	grpcserver "github.com/stolostron/cloudevents-conductor/pkg/server/grpc"
-	"github.com/stolostron/cloudevents-conductor/test/integration/maestro"
-	"open-cluster-management.io/ocm/pkg/common/helpers"
 	commonoptions "open-cluster-management.io/ocm/pkg/common/options"
 	"open-cluster-management.io/ocm/pkg/features"
 	"open-cluster-management.io/ocm/pkg/registration/hub"
@@ -45,6 +46,7 @@ import (
 	"open-cluster-management.io/ocm/pkg/registration/spoke/registration"
 	workspoke "open-cluster-management.io/ocm/pkg/work/spoke"
 	"open-cluster-management.io/ocm/test/integration/util"
+	grpcserver "open-cluster-management.io/sdk-go/pkg/server/grpc"
 )
 
 const (
@@ -73,7 +75,7 @@ var stopHub context.CancelFunc
 
 var stopGRPCServer context.CancelFunc
 
-var gRPCServerOptions *grpcoptions.GRPCServerOptions
+var gRPCServerOptions *grpcserver.GRPCServerOptions
 var gRPCCAKeyFile string
 
 var testPostgres *testpostgres.TestPostgres
@@ -134,6 +136,9 @@ var _ = ginkgo.BeforeSuite(func() {
 	cfg, err := testEnv.Start()
 	gomega.Expect(err).ToNot(gomega.HaveOccurred())
 	gomega.Expect(cfg).ToNot(gomega.BeNil())
+
+	// bootstrap rbac for cloudevents authorization
+	gomega.Expect(bootstrapRBAC(context.Background(), cfg)).NotTo(gomega.HaveOccurred())
 
 	features.SpokeMutableFeatureGate.Add(ocmfeature.DefaultSpokeRegistrationFeatureGates)
 	features.SpokeMutableFeatureGate.Add(ocmfeature.DefaultSpokeWorkFeatureGates)
@@ -233,7 +238,7 @@ var _ = ginkgo.BeforeSuite(func() {
 
 	hubOption := hub.NewHubManagerOptions()
 	hubOption.ImportOption.APIServerURL = hubCfg.Host
-	hubOption.EnabledRegistrationDrivers = []string{helpers.GRPCCAuthType, helpers.CSRAuthType}
+	hubOption.EnabledRegistrationDrivers = []string{operatorapiv1.GRPCAuthType, operatorapiv1.CSRAuthType}
 	hubOption.GRPCCAFile = gRPCServerOptions.ClientCAFile
 	hubOption.GRPCCAKeyFile = gRPCCAKeyFile
 
@@ -263,9 +268,9 @@ var _ = ginkgo.AfterSuite(func() {
 	gomega.Expect(err).ToNot(gomega.HaveOccurred())
 })
 
-func runGRPCServer(name string, gRPCServerConfig *grpcoptions.GRPCServerOptions, dbConfig *dbconfig.DatabaseConfig, cfg *rest.Config) context.CancelFunc {
+func runGRPCServer(name string, gRPCServerConfig *grpcserver.GRPCServerOptions, dbConfig *dbconfig.DatabaseConfig, cfg *rest.Config) context.CancelFunc {
 	ctx, cancel := context.WithCancel(context.Background())
-	serverConfig := &grpcserver.GRPCServerConfig{
+	serverConfig := &grpc.GRPCServerConfig{
 		GRPCConfig: gRPCServerConfig,
 		DBConfig:   dbConfig,
 	}
@@ -281,7 +286,7 @@ func runGRPCServer(name string, gRPCServerConfig *grpcoptions.GRPCServerOptions,
 		klog.Fatalf("Failed to write grpc server config file %s: %v", serverConfigFile, err)
 	}
 
-	grpcServerOptions := grpcserver.NewGRPCServerOptions()
+	grpcServerOptions := grpc.NewGRPCServerOptions()
 	grpcServerOptions.GRPCServerConfigFile = serverConfigFile
 
 	runGRPCServerWithContext(ctx, name, grpcServerOptions, cfg)
@@ -289,7 +294,82 @@ func runGRPCServer(name string, gRPCServerConfig *grpcoptions.GRPCServerOptions,
 	return cancel
 }
 
-func runGRPCServerWithContext(ctx context.Context, name string, grpcServerOptions *grpcserver.GRPCServerOptions, cfg *rest.Config) {
+func bootstrapRBAC(ctx context.Context, cfg *rest.Config) error {
+	k8sClient, err := client.New(cfg, client.Options{Scheme: scheme.Scheme})
+	if err != nil {
+		return err
+	}
+	clusterRole := &rbacv1.ClusterRole{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "test-managedcluster-role",
+		},
+		Rules: []rbacv1.PolicyRule{
+			// ManagedCluster
+			{
+				APIGroups: []string{"cluster.open-cluster-management.io"},
+				Resources: []string{"managedclusters", "managedclusters/status", "managedclusters/finalizers"},
+				Verbs:     []string{"get", "list", "watch", "create", "update", "patch", "delete"},
+			},
+			// CSR
+			{
+				APIGroups: []string{"certificates.k8s.io"},
+				Resources: []string{"certificatesigningrequests"},
+				Verbs:     []string{"get", "list", "watch", "create", "update", "patch"},
+			},
+			{
+				APIGroups: []string{"certificates.k8s.io"},
+				Resources: []string{"certificatesigningrequests/approval", "certificatesigningrequests/status"},
+				Verbs:     []string{"update", "patch"},
+			},
+			// Leases (coordination.k8s.io)
+			{
+				APIGroups: []string{"coordination.k8s.io"},
+				Resources: []string{"leases"},
+				Verbs:     []string{"get", "list", "watch", "create", "update", "patch", "delete"},
+			},
+			// ManifestWorks (work.open-cluster-management.io)
+			{
+				APIGroups: []string{"work.open-cluster-management.io"},
+				Resources: []string{"manifestworks", "manifestworks/status", "manifestworks/finalizers"},
+				Verbs:     []string{"get", "list", "watch", "create", "update", "patch", "delete"},
+			},
+			// ManagedClusterAddons (addon.open-cluster-management.io)
+			{
+				APIGroups: []string{"addon.open-cluster-management.io"},
+				Resources: []string{"managedclusteraddons", "managedclusteraddons/status", "managedclusteraddons/finalizers"},
+				Verbs:     []string{"get", "list", "watch", "create", "update", "patch", "delete"},
+			},
+		},
+	}
+	if err := k8sClient.Create(ctx, clusterRole); err != nil {
+		return err
+	}
+
+	clusterRoleBinding := &rbacv1.ClusterRoleBinding{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "test-managedcluster-binding",
+		},
+		Subjects: []rbacv1.Subject{
+			{
+				Kind:     rbacv1.UserKind,
+				Name:     "test-client", // agent run as user "test-client"
+				APIGroup: "rbac.authorization.k8s.io",
+			},
+		},
+		RoleRef: rbacv1.RoleRef{
+			Kind:     "ClusterRole",
+			Name:     "test-managedcluster-role",
+			APIGroup: "rbac.authorization.k8s.io",
+		},
+	}
+	if err := k8sClient.Create(ctx, clusterRoleBinding); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func runGRPCServerWithContext(ctx context.Context, name string, grpcServerOptions *grpc.GRPCServerOptions, cfg *rest.Config) {
 	go func() {
 		err := grpcServerOptions.Run(ctx, &controllercmd.ControllerContext{
 			KubeConfig:    cfg,

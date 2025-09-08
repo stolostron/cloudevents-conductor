@@ -19,9 +19,9 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 	clusterv1 "open-cluster-management.io/api/cluster/v1"
+	operatorapiv1 "open-cluster-management.io/api/operator/v1"
 	workv1 "open-cluster-management.io/api/work/v1"
 
-	"open-cluster-management.io/ocm/pkg/common/helpers"
 	commonhelpers "open-cluster-management.io/ocm/pkg/common/helpers"
 	commonoptions "open-cluster-management.io/ocm/pkg/common/options"
 	"open-cluster-management.io/ocm/pkg/registration/register/factory"
@@ -57,7 +57,7 @@ var _ = Describe("Registration and apply work using GRPC", Ordered, Label("grpc-
 			hubGRPCConfigSecret = fmt.Sprintf("%s-hub-grpcconfig-secret-%s", grpcTest, postfix)
 			hubGRPCConfigDir = path.Join(util.TestDir, fmt.Sprintf("%s-grpc-%s", grpcTest, postfix), "hub-kubeconfig")
 			grpcDriverOption := factory.NewOptions()
-			grpcDriverOption.RegistrationAuth = helpers.GRPCCAuthType
+			grpcDriverOption.RegistrationAuth = operatorapiv1.GRPCAuthType
 			grpcDriverOption.GRPCOption = &grpc.Option{
 				BootstrapConfigFile: bootstrapGRPCConfigFile,
 				ConfigFile:          path.Join(hubGRPCConfigDir, "config.yaml"),
