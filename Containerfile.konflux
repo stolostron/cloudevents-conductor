@@ -2,7 +2,7 @@
 # Copyright Contributors to the Open Cluster Management project
 
 # make base image configurable
-ARG BASE_IMAGE=brew.registry.redhat.io/rh-osbs/openshift-golang-builder:rhel_9_1.23
+ARG BASE_IMAGE=brew.registry.redhat.io/rh-osbs/openshift-golang-builder:rhel_9_1.24
 
 # Stage 1: build the target binaries
 FROM ${BASE_IMAGE} AS builder

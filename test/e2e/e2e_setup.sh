@@ -33,7 +33,7 @@ EOF
 fi
 
 # 2. build conductor image and load to KinD cluster
-image_tag=${image_tag} BASE_IMAGE=golang:1.23 make image
+image_tag=${image_tag} BASE_IMAGE=golang:1.24 make image
   # related issue: https://github.com/kubernetes-sigs/kind/issues/2038
 if command -v docker &> /dev/null; then
     kind load docker-image ${image_repository}/${image_name}:${image_tag} --name cloudevents-conductor-e2e
@@ -66,9 +66,34 @@ helm install cluster-manager ${CURRENT_DIR}/ocm/deploy/cluster-manager/chart/clu
     --namespace open-cluster-management \
     --create-namespace \
     --set replicaCount=1 \
-    --set clusterManager.registrationConfiguration.registrationDrivers[0].authType=csr \
-    --set clusterManager.registrationConfiguration.registrationDrivers[1].authType=grpc \
-    --set clusterManager.registrationConfiguration.registrationDrivers[1].grpc.imagePullSpec=${image_repository}/${image_name}:${image_tag}
+    --set clusterManager.create=false
+
+cat <<EOF | kubectl apply -f -
+apiVersion: operator.open-cluster-management.io/v1
+kind: ClusterManager
+metadata:
+  name: cluster-manager
+spec:
+  addOnManagerImagePullSpec: quay.io/open-cluster-management/addon-manager:latest
+  deployOption:
+    mode: Default
+  placementImagePullSpec: quay.io/open-cluster-management/placement:latest
+  registrationConfiguration:
+    featureGates:
+    - feature: DefaultClusterSet
+      mode: Enable
+    registrationDrivers:
+    - authType: csr
+    - authType: grpc
+  registrationImagePullSpec: quay.io/open-cluster-management/registration:latest
+  resourceRequirement:
+    type: Default
+  workConfiguration:
+    workDriver: kube
+  workImagePullSpec: quay.io/open-cluster-management/work:latest
+  serverConfiguration:
+    imagePullSpec: ${image_repository}/${image_name}:${image_tag}
+EOF
 
 # wait until clustermanager is applied
 kubectl wait --for=condition=applied --timeout=120s clustermanager/cluster-manager
