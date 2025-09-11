@@ -10,7 +10,7 @@ import (
 	dbconfig "github.com/openshift-online/maestro/pkg/config"
 	"github.com/openshift-online/maestro/pkg/constants"
 	"github.com/stretchr/testify/assert"
-	grpcoptions "open-cluster-management.io/sdk-go/pkg/cloudevents/server/grpc/options"
+	grpcserver "open-cluster-management.io/sdk-go/pkg/server/grpc"
 )
 
 // Test loadGRPCServerConfig with valid config file
@@ -38,7 +38,7 @@ db_config:
   sslmode: "disable"
 `,
 			expected: &GRPCServerConfig{
-				GRPCConfig: &grpcoptions.GRPCServerOptions{
+				GRPCConfig: &grpcserver.GRPCServerOptions{
 					ServerBindPort:        "8090",
 					MaxConcurrentStreams:  math.MaxUint32,
 					MaxReceiveMessageSize: 1024 * 1024 * 4,
@@ -53,6 +53,8 @@ db_config:
 					TLSCertFile:           "/path/to/tls.crt",
 					TLSKeyFile:            "/path/to/tls.key",
 					ClientCAFile:          "/path/to/ca.crt",
+					TLSMinVersion:         771,
+					TLSMaxVersion:         772,
 				},
 				DBConfig: &dbconfig.DatabaseConfig{
 					AuthMethod:         constants.AuthMethodPassword,
@@ -86,7 +88,7 @@ db_config:
 			name:          "EmptyConfig",
 			configContent: ``,
 			expected: &GRPCServerConfig{
-				GRPCConfig: &grpcoptions.GRPCServerOptions{
+				GRPCConfig: &grpcserver.GRPCServerOptions{
 					ServerBindPort:        "8090",
 					MaxConcurrentStreams:  math.MaxUint32,
 					MaxReceiveMessageSize: 1024 * 1024 * 4,
@@ -98,6 +100,11 @@ db_config:
 					ServerPingTimeout:     10 * time.Second,
 					WriteBufferSize:       32 * 1024,
 					ReadBufferSize:        32 * 1024,
+					TLSCertFile:           "/var/run/secrets/hub/grpc/serving-cert/tls.crt",
+					TLSKeyFile:            "/var/run/secrets/hub/grpc/serving-cert/tls.key",
+					ClientCAFile:          "/var/run/secrets/hub/grpc/ca/ca-bundle.crt",
+					TLSMinVersion:         771,
+					TLSMaxVersion:         772,
 				},
 				DBConfig: &dbconfig.DatabaseConfig{
 					AuthMethod:         constants.AuthMethodPassword,
@@ -128,7 +135,7 @@ db_config:
   sslmode: "disable"
 `,
 			expected: &GRPCServerConfig{
-				GRPCConfig: &grpcoptions.GRPCServerOptions{
+				GRPCConfig: &grpcserver.GRPCServerOptions{
 					ServerBindPort:        "8090",
 					MaxConcurrentStreams:  math.MaxUint32,
 					MaxReceiveMessageSize: 1024 * 1024 * 4,
@@ -140,6 +147,11 @@ db_config:
 					ServerPingTimeout:     10 * time.Second,
 					WriteBufferSize:       32 * 1024,
 					ReadBufferSize:        32 * 1024,
+					TLSCertFile:           "/var/run/secrets/hub/grpc/serving-cert/tls.crt",
+					TLSKeyFile:            "/var/run/secrets/hub/grpc/serving-cert/tls.key",
+					ClientCAFile:          "/var/run/secrets/hub/grpc/ca/ca-bundle.crt",
+					TLSMinVersion:         771,
+					TLSMaxVersion:         772,
 				},
 				DBConfig: &dbconfig.DatabaseConfig{
 					AuthMethod:         constants.AuthMethodPassword,
@@ -172,7 +184,7 @@ grpc_config:
   client_ca_file: "/path/to/ca.crt"
 `,
 			expected: &GRPCServerConfig{
-				GRPCConfig: &grpcoptions.GRPCServerOptions{
+				GRPCConfig: &grpcserver.GRPCServerOptions{
 					ServerBindPort:        "8090",
 					MaxConcurrentStreams:  math.MaxUint32,
 					MaxReceiveMessageSize: 1024 * 1024 * 4,
@@ -187,6 +199,8 @@ grpc_config:
 					TLSCertFile:           "/path/to/tls.crt",
 					TLSKeyFile:            "/path/to/tls.key",
 					ClientCAFile:          "/path/to/ca.crt",
+					TLSMinVersion:         771,
+					TLSMaxVersion:         772,
 				},
 				DBConfig: &dbconfig.DatabaseConfig{
 					AuthMethod:         constants.AuthMethodPassword,
