@@ -2,7 +2,7 @@
 
 set -o errexit
 
-cloudevents_conductor_image="${1:-quay.io/redhat-user-workloads/crt-redhat-acm-tenant/cloudevents-conductor-main@sha256:1223a7fab5cf306638711baf2d3906848146803d7e538782151fac7ea4fd3caf}"
+cloudevents_conductor_image="${1:-quay.io/redhat-user-workloads/crt-redhat-acm-tenant/cloudevents-conductor-main@sha256:3d61937d26c97e49570aaadfbc43296dbfb24fa108bdfece5899d3ca3925121e}"
 
 echo "Prepare the cloudevents-conductor configuration"
 db_pw=$(kubectl -n maestro get secret maestro-db-config -o jsonpath='{.data.password}' | base64 -d)
@@ -45,21 +45,50 @@ EOF
 
 echo "Patch the ClusterManager to enable cloudevents-conductor"
 host=$(kubectl -n open-cluster-management-hub get route grpc-server -o jsonpath='{.spec.host}')
-kubectl patch clustermanager cluster-manager --type='json' --patch "$(printf '[
-  {
-    "op": "add",
-    "path": "/spec/registrationConfiguration/registrationDrivers/-",
-    "value": {
-      "authType": "grpc",
-      "grpc": {
-        "imagePullSpec": "%s",
-        "endpointExposure": {
-          "type": "hostname",
-          "hostname": {
-            "value": "%s"
+
+# Check if registrationConfiguration exists
+if kubectl get clustermanager cluster-manager -o jsonpath='{.spec.registrationConfiguration}' | grep -q .; then
+  # registrationConfiguration exists, add to registrationDrivers array
+  kubectl patch clustermanager cluster-manager --type='json' --patch "$(printf '[
+    {
+      "op": "add",
+      "path": "/spec/registrationConfiguration/registrationDrivers/-",
+      "value": {
+        "authType": "grpc",
+        "grpc": {
+          "imagePullSpec": "%s",
+          "endpointExposure": {
+            "type": "hostname",
+            "hostname": {
+              "value": "%s"
+            }
           }
         }
       }
     }
-  }
-]' "$cloudevents_conductor_image" "$host")"
+  ]' "$cloudevents_conductor_image" "$host")"
+else
+  # registrationConfiguration doesn't exist, create it
+  kubectl patch clustermanager cluster-manager --type='json' --patch "$(printf '[
+    {
+      "op": "add",
+      "path": "/spec/registrationConfiguration",
+      "value": {
+        "registrationDrivers": [
+          {
+            "authType": "grpc",
+            "grpc": {
+              "imagePullSpec": "%s",
+              "endpointExposure": {
+                "type": "hostname",
+                "hostname": {
+                  "value": "%s"
+                }
+              }
+            }
+          }
+        ]
+      }
+    }
+  ]' "$cloudevents_conductor_image" "$host")"
+fi
