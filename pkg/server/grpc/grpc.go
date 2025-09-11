@@ -18,9 +18,10 @@ import (
 	dbevent "github.com/stolostron/cloudevents-conductor/pkg/services/db/event"
 	"github.com/stolostron/cloudevents-conductor/pkg/services/db/resource"
 	dbstatusevent "github.com/stolostron/cloudevents-conductor/pkg/services/db/statusevent"
+	"google.golang.org/grpc"
 	"gopkg.in/yaml.v2"
 	"k8s.io/klog/v2"
-	"open-cluster-management.io/ocm/pkg/server/grpc"
+	ocmgrpcserver "open-cluster-management.io/ocm/pkg/server/grpc"
 	"open-cluster-management.io/ocm/pkg/server/services/addon"
 	"open-cluster-management.io/ocm/pkg/server/services/cluster"
 	"open-cluster-management.io/ocm/pkg/server/services/csr"
@@ -33,8 +34,11 @@ import (
 	eventce "open-cluster-management.io/sdk-go/pkg/cloudevents/clients/event"
 	leasece "open-cluster-management.io/sdk-go/pkg/cloudevents/clients/lease"
 	"open-cluster-management.io/sdk-go/pkg/cloudevents/clients/work/payload"
-	grpcauthn "open-cluster-management.io/sdk-go/pkg/cloudevents/server/grpc/authn"
-	grpcoptions "open-cluster-management.io/sdk-go/pkg/cloudevents/server/grpc/options"
+	pbv1 "open-cluster-management.io/sdk-go/pkg/cloudevents/generic/options/grpc/protobuf/v1"
+	grpcceserver "open-cluster-management.io/sdk-go/pkg/cloudevents/server/grpc"
+	grpcauthz "open-cluster-management.io/sdk-go/pkg/cloudevents/server/grpc/authz/kube"
+	grpcserver "open-cluster-management.io/sdk-go/pkg/server/grpc"
+	grpcauthn "open-cluster-management.io/sdk-go/pkg/server/grpc/authn"
 )
 
 // GRPCServerConfig defines the configuration for the gRPC server.
@@ -57,8 +61,8 @@ db_config:
 ```
 */
 type GRPCServerConfig struct {
-	GRPCConfig *grpcoptions.GRPCServerOptions `json:"grpc_config,omitempty" yaml:"grpc_config,omitempty"`
-	DBConfig   *dbconfig.DatabaseConfig       `json:"db_config,omitempty" yaml:"db_config,omitempty"`
+	GRPCConfig *grpcserver.GRPCServerOptions `json:"grpc_config,omitempty" yaml:"grpc_config,omitempty"`
+	DBConfig   *dbconfig.DatabaseConfig      `json:"db_config,omitempty" yaml:"db_config,omitempty"`
 }
 
 // loadGRPCServerConfig loads the gRPC server configuration from the specified file.
@@ -69,7 +73,7 @@ func loadGRPCServerConfig(configPath string) (*GRPCServerConfig, error) {
 	}
 
 	grpcServerConfig := &GRPCServerConfig{
-		GRPCConfig: grpcoptions.NewGRPCServerOptions(),
+		GRPCConfig: grpcserver.NewGRPCServerOptions(),
 		DBConfig:   dbconfig.NewDatabaseConfig(),
 	}
 	if err := yaml.Unmarshal(grpcServerConfigData, grpcServerConfig); err != nil {
@@ -120,12 +124,27 @@ func (o *GRPCServerOptions) Run(ctx context.Context, controllerContext *controll
 	// Listen for db events and add them to the controller manager in a goroutine
 	go sessionFactory.NewListener(ctx, "events", ctrMgr.AddEvent)
 
-	clients, err := grpc.NewClients(controllerContext)
+	clients, err := ocmgrpcserver.NewClients(controllerContext)
 	if err != nil {
 		return err
 	}
 
 	workService := work.NewWorkService(clients.WorkClient, clients.WorkInformers.Work().V1().ManifestWorks())
+
+	grpcEventServer := grpcceserver.NewGRPCBroker()
+	grpcEventServer.RegisterService(clusterce.ManagedClusterEventDataType,
+		cluster.NewClusterService(clients.ClusterClient, clients.ClusterInformers.Cluster().V1().ManagedClusters()))
+	grpcEventServer.RegisterService(csrce.CSREventDataType,
+		csr.NewCSRService(clients.KubeClient, clients.KubeInformers.Certificates().V1().CertificateSigningRequests()))
+	grpcEventServer.RegisterService(
+		addonce.ManagedClusterAddOnEventDataType,
+		addon.NewAddonService(clients.AddOnClient, clients.AddOnInformers.Addon().V1alpha1().ManagedClusterAddOns()))
+	grpcEventServer.RegisterService(eventce.EventEventDataType,
+		event.NewEventService(clients.KubeClient))
+	grpcEventServer.RegisterService(leasece.LeaseEventDataType,
+		lease.NewLeaseService(clients.KubeClient, clients.KubeInformers.Coordination().V1().Leases()))
+	grpcEventServer.RegisterService(payload.ManifestBundleEventDataType,
+		services.NewRouterService(dbService, ctrMgr, workService, clients.WorkInformers.Work().V1().ManifestWorks()))
 
 	managedClusterController := controller.NewManagedClusterController(
 		clients.ClusterInformers.Cluster().V1().ManagedClusters(),
@@ -136,31 +155,16 @@ func (o *GRPCServerOptions) Run(ctx context.Context, controllerContext *controll
 
 	// TODO: start the controller as a prehook of grpc server
 	go managedClusterController.Run(ctx, 1)
+	go clients.Run(ctx)
+	go ctrMgr.Run(ctx)
 
-	return grpcoptions.NewServer(serverOptions).WithPreStartHooks(ctrMgr).WithPreStartHooks(clients).WithAuthenticator(
-		grpcauthn.NewTokenAuthenticator(clients.KubeClient),
-	).WithAuthenticator(
-		grpcauthn.NewMtlsAuthenticator(),
-	).WithService(
-		clusterce.ManagedClusterEventDataType,
-		cluster.NewClusterService(clients.ClusterClient, clients.ClusterInformers.Cluster().V1().ManagedClusters()),
-	).WithService(
-		csrce.CSREventDataType,
-		csr.NewCSRService(clients.KubeClient, clients.KubeInformers.Certificates().V1().CertificateSigningRequests()),
-	).WithService(
-		addonce.ManagedClusterAddOnEventDataType,
-		addon.NewAddonService(clients.AddOnClient, clients.AddOnInformers.Addon().V1alpha1().ManagedClusterAddOns()),
-	).WithService(
-		eventce.EventEventDataType,
-		event.NewEventService(clients.KubeClient),
-	).WithService(
-		leasece.LeaseEventDataType,
-		lease.NewLeaseService(clients.KubeClient, clients.KubeInformers.Coordination().V1().Leases()),
-	).WithService(
-		payload.ManifestBundleEventDataType,
-		services.NewRouterService(dbService,
-			ctrMgr,
-			workService,
-			clients.WorkInformers.Work().V1().ManifestWorks()),
-	).Run(ctx)
+	authorizer := grpcauthz.NewSARAuthorizer(clients.KubeClient)
+	return grpcserver.NewGRPCServer(serverOptions).
+		WithAuthenticator(grpcauthn.NewTokenAuthenticator(clients.KubeClient)).
+		WithAuthenticator(grpcauthn.NewMtlsAuthenticator()).
+		WithUnaryAuthorizer(authorizer).
+		WithStreamAuthorizer(authorizer).
+		WithRegisterFunc(func(s *grpc.Server) {
+			pbv1.RegisterCloudEventServiceServer(s, grpcEventServer)
+		}).Run(ctx)
 }
