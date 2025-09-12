@@ -6,7 +6,7 @@ CURRENT_DIR="$(cd ${CURRENT_DIR} && pwd)"
 cluster_name="${1:-cluster1}"
 grpc_server="${2:-cluster-manager-grpc-server.open-cluster-management-hub.svc:8090}"
 
-echo "Prepare bootstrap config for $cluster_name"
+echo "Prepare bootstrap config for $cluster_name with $grpc_server"
 
 # prepare certs
 rm -rf $CURRENT_DIR/config

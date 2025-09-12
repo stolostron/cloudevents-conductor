@@ -57,9 +57,20 @@ helm install klusterlet ocm/klusterlet \
     --create-namespace
 ```
 
+For unreleased version, you can install klusterlet from local chart
+```sh
+git clone https://github.com/open-cluster-management-io/ocm.git
+cd ocm
+
+helm install klusterlet deploy/klusterlet/chart/klusterlet \
+    --set klusterlet.clusterName=<your-managedcluster-name> \
+    --set klusterlet.registrationConfiguration.registrationDriver.authType=grpc \
+    --namespace=open-cluster-management \
+    --create-namespace
+```
 4. Accept your managedcluster on your hub
 
 ```sh
-kubectl patch managedcluster <your-managedcluster-name> -p='{\"spec\":{\"hubAcceptsClient\":true}}' --type=merge
-kubectl get csr -l open-cluster-management.io/cluster-name=<your-managedcluster-name> | grep Pending | awk '{print \$1}' | xargs kubectl certificate approve
+kubectl patch managedcluster <your-managedcluster-name> -p='{"spec":{"hubAcceptsClient":true}}' --type=merge
+kubectl get csr -l open-cluster-management.io/cluster-name=<your-managedcluster-name> | grep Pending | awk '{print $1}' | xargs kubectl certificate approve
 ```
