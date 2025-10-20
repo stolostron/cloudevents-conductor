@@ -165,7 +165,7 @@ var _ = ginkgo.BeforeSuite(func() {
 	gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
 	bootstrapGRPCConfigFile = path.Join(util.TestDir, "bootstrap", "grpcconfig")
-	_, gRPCServerOptions, gRPCCAKeyFile, err = util.CreateGRPCConfigs(bootstrapGRPCConfigFile)
+	_, gRPCServerOptions, gRPCCAKeyFile, err = util.CreateGRPCConfigs(bootstrapGRPCConfigFile, "8090")
 	gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
 	// prepare clients

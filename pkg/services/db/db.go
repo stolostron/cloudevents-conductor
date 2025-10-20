@@ -15,7 +15,6 @@ import (
 	"k8s.io/klog/v2"
 	"open-cluster-management.io/sdk-go/pkg/cloudevents/clients/common"
 	workpayload "open-cluster-management.io/sdk-go/pkg/cloudevents/clients/work/payload"
-	"open-cluster-management.io/sdk-go/pkg/cloudevents/clients/work/source/codec"
 	"open-cluster-management.io/sdk-go/pkg/cloudevents/generic/types"
 	"open-cluster-management.io/sdk-go/pkg/cloudevents/server"
 )
@@ -130,8 +129,8 @@ func handleStatusUpdate(ctx context.Context, resource *api.Resource, resourceSer
 	}
 
 	// set work meta from spec event to status event
-	if workMeta, ok := specEvent.Extensions()[codec.ExtensionWorkMeta]; ok {
-		statusEvent.SetExtension(codec.ExtensionWorkMeta, workMeta)
+	if workMeta, ok := specEvent.Extensions()[types.ExtensionWorkMeta]; ok {
+		statusEvent.SetExtension(types.ExtensionWorkMeta, workMeta)
 	}
 
 	// convert the resource status cloudevent back to resource status jsonmap
