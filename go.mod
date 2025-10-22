@@ -2,7 +2,7 @@ module github.com/stolostron/cloudevents-conductor
 
 go 1.24.4
 
-toolchain go1.24.6
+toolchain go1.25.3
 
 require (
 	github.com/cloudevents/sdk-go/v2 v2.16.2
