@@ -2,7 +2,7 @@
 
 set -o errexit
 
-cloudevents_conductor_image="${1:-quay.io/redhat-user-workloads/crt-redhat-acm-tenant/cloudevents-conductor-main@sha256:3d61937d26c97e49570aaadfbc43296dbfb24fa108bdfece5899d3ca3925121e}"
+cloudevents_conductor_image="${1:-quay.io/redhat-user-workloads/crt-redhat-acm-tenant/cloudevents-conductor-main@sha256:ab5444876e954bbf2b05d944380de4a927dfac237c8e5691a5304225ba6946fe}"
 
 echo "Prepare the cloudevents-conductor configuration"
 db_pw=$(kubectl -n maestro get secret maestro-db-config -o jsonpath='{.data.password}' | base64 -d)
@@ -46,65 +46,23 @@ EOF
 echo "Patch the ClusterManager to enable cloudevents-conductor"
 host=$(kubectl -n open-cluster-management-hub get route grpc-server -o jsonpath='{.spec.host}')
 
-# Check if grpc authType already exists in registrationDrivers
-if kubectl get clustermanager cluster-manager -o jsonpath='{.spec.registrationConfiguration.registrationDrivers[?(@.authType=="grpc")].authType}' 2>/dev/null | grep -q grpc; then
-  echo "grpc authType already exists in registrationDrivers, skipping patch"
-else
-  # Check if registrationConfiguration exists
-  if kubectl get clustermanager cluster-manager -o jsonpath='{.spec.registrationConfiguration}' 2>/dev/null | grep -q .; then
-    # registrationConfiguration exists, check if registrationDrivers exists
-    if kubectl get clustermanager cluster-manager -o jsonpath='{.spec.registrationConfiguration.registrationDrivers}' 2>/dev/null | grep -q .; then
-      # registrationDrivers exists, append to the array
-      kubectl patch clustermanager cluster-manager --type='json' --patch '[
+kubectl patch clustermanager cluster-manager --type='json' --patch "$(printf '[
+  {
+    "op": "add",
+    "path": "/spec/registrationConfiguration",
+    "value": {
+      "registrationDrivers": [
         {
-          "op": "add",
-          "path": "/spec/registrationConfiguration/registrationDrivers/-",
-          "value": {
-            "authType": "grpc"
-          }
+          "authType": "grpc"
         }
-      ]'
-    else
-      # registrationDrivers doesn't exist, create it
-      kubectl patch clustermanager cluster-manager --type='json' --patch '[
-        {
-          "op": "add",
-          "path": "/spec/registrationConfiguration/registrationDrivers",
-          "value": [
-            {
-              "authType": "grpc"
-            }
-          ]
-        }
-      ]'
-    fi
-  else
-    # registrationConfiguration doesn't exist, create it with registrationDrivers
-    kubectl patch clustermanager cluster-manager --type='json' --patch '[
-      {
-        "op": "add",
-        "path": "/spec/registrationConfiguration",
-        "value": {
-          "registrationDrivers": [
-            {
-              "authType": "grpc"
-            }
-          ]
-        }
-      }
-    ]'
-  fi
-fi
-
-echo "Patch the ClusterManager serverConfiguration"
-# Check if serverConfiguration exists
-if kubectl get clustermanager cluster-manager -o jsonpath='{.spec.serverConfiguration}' 2>/dev/null | grep -q .; then
-  # serverConfiguration exists, update it
-  kubectl patch clustermanager cluster-manager --type='json' --patch "$(printf '[
-    {
-      "op": "add",
-      "path": "/spec/serverConfiguration/endpointsExposure",
-      "value": [
+      ]
+    }
+  },
+  {
+    "op": "add",
+    "path": "/spec/serverConfiguration",
+    "value": {
+      "endpointsExposure": [
         {
           "grpc": {
             "hostname": {
@@ -114,35 +72,9 @@ if kubectl get clustermanager cluster-manager -o jsonpath='{.spec.serverConfigur
           },
           "protocol": "grpc"
         }
-      ]
-    },
-    {
-      "op": "add",
-      "path": "/spec/serverConfiguration/imagePullSpec",
-      "value": "%s"
+      ],
+      "imagePullSpec": "%s"
     }
-  ]' "$host" "$cloudevents_conductor_image")"
-else
-  # serverConfiguration doesn't exist, create it
-  kubectl patch clustermanager cluster-manager --type='json' --patch "$(printf '[
-    {
-      "op": "add",
-      "path": "/spec/serverConfiguration",
-      "value": {
-        "endpointsExposure": [
-          {
-            "grpc": {
-              "hostname": {
-                "host": "%s"
-              },
-              "type": "hostname"
-            },
-            "protocol": "grpc"
-          }
-        ],
-        "imagePullSpec": "%s"
-      }
-    }
-  ]' "$host" "$cloudevents_conductor_image")"
-fi
+  }
+]' "$host" "$cloudevents_conductor_image")"
 

@@ -3,6 +3,8 @@
 CURRENT_DIR="$(dirname "${BASH_SOURCE[0]}")"
 CURRENT_DIR="$(cd ${CURRENT_DIR} && pwd)"
 
+export PATH=$PATH:${CURRENT_DIR}/bin
+
 image_repository="${image_repository:-quay.io/stolostron}"
 image_name="${image_name:-cloudevents-conductor}"
 image_tag="${image_tag:-$(date +%s)}"
@@ -60,40 +62,32 @@ kubectl patch service maestro-grpc -n maestro \
   -p '{"spec": {"type": "NodePort", "ports": [{"port":8090, "protocol":"TCP", "targetPort":8090, "nodePort":30090}]}}'
 
 # 4. deploy cluster-manager
-git clone https://github.com/open-cluster-management-io/ocm ${CURRENT_DIR}/ocm
-# git clone git@github.com:open-cluster-management-io/ocm.git ${CURRENT_DIR}/ocm
-helm install cluster-manager ${CURRENT_DIR}/ocm/deploy/cluster-manager/chart/cluster-manager \
-    --namespace open-cluster-management \
-    --create-namespace \
-    --set replicaCount=1 \
-    --set clusterManager.create=false
+go install open-cluster-management.io/clusteradm/cmd/clusteradm@main
 
-cat <<EOF | kubectl apply -f -
-apiVersion: operator.open-cluster-management.io/v1
-kind: ClusterManager
-metadata:
-  name: cluster-manager
-spec:
-  addOnManagerImagePullSpec: quay.io/open-cluster-management/addon-manager:latest
-  deployOption:
-    mode: Default
-  placementImagePullSpec: quay.io/open-cluster-management/placement:latest
-  registrationConfiguration:
-    featureGates:
-    - feature: DefaultClusterSet
-      mode: Enable
-    registrationDrivers:
-    - authType: csr
-    - authType: grpc
-  registrationImagePullSpec: quay.io/open-cluster-management/registration:latest
-  resourceRequirement:
-    type: Default
-  workConfiguration:
-    workDriver: kube
-  workImagePullSpec: quay.io/open-cluster-management/work:latest
-  serverConfiguration:
-    imagePullSpec: ${image_repository}/${image_name}:${image_tag}
-EOF
+clusteradm init --wait --bundle-version=latest
+
+kubectl patch clustermanager cluster-manager --type='json' --patch "$(printf '[
+  {
+    "op": "add",
+    "path": "/spec/registrationConfiguration/registrationDrivers/-",
+    "value": {
+      "authType": "grpc"
+    }
+  },
+  {
+    "op": "add",
+    "path": "/spec/serverConfiguration",
+    "value": {
+      "endpointsExposure": [
+        {
+          "protocol": "grpc"
+        }
+      ],
+      "imagePullSpec": "%s"
+    }
+  }
+]' "${image_repository}/${image_name}:${image_tag}")"
+
 
 # wait until clustermanager is applied
 kubectl wait --for=condition=applied --timeout=120s clustermanager/cluster-manager
@@ -138,40 +132,15 @@ while true; do
   sleep 5
 done
 
-# 6. prepare bootstrap config for managed cluster
-${CURRENT_DIR}/../../deploy/managedcluster/hub.sh ${managed_cluster_name}
+echo "Join $managed_cluster_name to cluster"
+joincmd=$(clusteradm get token | grep clusteradm)
 
-# 7. create bootstrap secret for managed cluster
-${CURRENT_DIR}/../../deploy/managedcluster/spoke.sh
+$(echo ${joincmd} --force-internal-endpoint-lookup --bundle-version=latest --singleton=true --registration-auth=grpc --grpc-server=cluster-manager-grpc-server.open-cluster-management-hub.svc:8090 | sed "s/<cluster_name>/$managed_cluster_name/g")
 
-# 8. install klusterlet on managed cluster
-helm install klusterlet ${CURRENT_DIR}/ocm/deploy/klusterlet/chart/klusterlet \
-    --set klusterlet.clusterName=${managed_cluster_name} \
-    --set klusterlet.registrationConfiguration.registrationDriver.authType=grpc \
-    --namespace=open-cluster-management \
-    --create-namespace
+# wait until cluster is created
+kubectl wait --for=create managedcluster/$managed_cluster_name --timeout=120s
 
-# wait until klusterlet is available
-kubectl wait --for=condition=available --timeout=120s klusterlet/klusterlet
+echo "Accept join of $managed_cluster_name"
+clusteradm accept --clusters ${managed_cluster_name} --wait
 
-# wait until klusterlet-agent deployment is available
-kubectl wait --for=condition=available --timeout=120s deployment/klusterlet-agent -n open-cluster-management-agent
-
-# wait until managedcluster is created
-start=$(date +%s)
-while true; do
-  if kubectl get managedcluster ${managed_cluster_name} &>/dev/null; then
-    break
-  fi
-  now=$(date +%s)
-  if [ $((now - start)) -ge $timeout ]; then
-    echo "Timed out waiting for managedcluster ${managed_cluster_name} creation"
-    exit 1
-  fi
-  sleep 5
-done
-echo "managedcluster ${managed_cluster_name} created!"
-
-# 9. accept your managedcluster on your hub
-kubectl patch managedcluster ${managed_cluster_name} -p='{"spec":{"hubAcceptsClient":true}}' --type=merge
-kubectl get csr -l open-cluster-management.io/cluster-name=${managed_cluster_name} | grep Pending | awk '{print $1}' | xargs kubectl certificate approve
+kubectl wait --for=condition=ManagedClusterConditionAvailable=true managedcluster/$managed_cluster_name --timeout=120s
