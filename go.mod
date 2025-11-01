@@ -8,9 +8,10 @@ require (
 	github.com/cloudevents/sdk-go/v2 v2.16.2
 	github.com/fergusstrange/embedded-postgres v1.32.0
 	github.com/lib/pq v1.10.9
-	github.com/onsi/ginkgo/v2 v2.25.3
+	github.com/onsi/ginkgo/v2 v2.27.2
 	github.com/onsi/gomega v1.38.2
 	github.com/openshift-online/maestro v0.0.0-20251021083856-c3a203739f84
+	github.com/openshift-online/ocm-sdk-go v0.1.478
 	github.com/openshift/library-go v0.0.0-20250711143941-47604345e7ea
 	github.com/spf13/cobra v1.10.1
 	github.com/spf13/pflag v1.0.10
@@ -144,7 +145,6 @@ require (
 	github.com/openshift-online/ocm-api-model/clientapi v0.0.433 // indirect
 	github.com/openshift-online/ocm-api-model/model v0.0.433 // indirect
 	github.com/openshift-online/ocm-common v0.0.32 // indirect
-	github.com/openshift-online/ocm-sdk-go v0.1.478 // indirect
 	github.com/openshift/api v0.0.0-20250710004639-926605d3338b // indirect
 	github.com/openshift/client-go v0.0.0-20250710075018-396b36f983ee // indirect
 	github.com/pkg/browser v0.0.0-20240102092130-5ac0b6a4141c // indirect
@@ -196,13 +196,13 @@ require (
 	go.opentelemetry.io/otel/sdk/metric v1.35.0 // indirect
 	go.opentelemetry.io/otel/trace v1.35.0 // indirect
 	go.opentelemetry.io/proto/otlp v1.5.0 // indirect
-	go.uber.org/automaxprocs v1.6.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
 	go.uber.org/zap v1.27.0 // indirect
 	go.yaml.in/yaml/v2 v2.4.2 // indirect
 	go.yaml.in/yaml/v3 v3.0.4 // indirect
 	golang.org/x/crypto v0.43.0 // indirect
 	golang.org/x/exp v0.0.0-20241217172543-b2144cdd0a67 // indirect
+	golang.org/x/mod v0.28.0 // indirect
 	golang.org/x/net v0.46.0 // indirect
 	golang.org/x/oauth2 v0.30.0 // indirect
 	golang.org/x/sync v0.17.0 // indirect
