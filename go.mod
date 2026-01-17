@@ -2,7 +2,7 @@ module github.com/stolostron/cloudevents-conductor
 
 go 1.24.4
 
-toolchain go1.24.6
+toolchain go1.25.6
 
 require (
 	github.com/cloudevents/sdk-go/v2 v2.16.2
@@ -11,6 +11,7 @@ require (
 	github.com/onsi/ginkgo/v2 v2.25.3
 	github.com/onsi/gomega v1.38.2
 	github.com/openshift-online/maestro v0.0.0-20251021083856-c3a203739f84
+	github.com/openshift-online/ocm-sdk-go v0.1.478
 	github.com/openshift/library-go v0.0.0-20250711143941-47604345e7ea
 	github.com/spf13/cobra v1.10.1
 	github.com/spf13/pflag v1.0.10
@@ -144,7 +145,6 @@ require (
 	github.com/openshift-online/ocm-api-model/clientapi v0.0.433 // indirect
 	github.com/openshift-online/ocm-api-model/model v0.0.433 // indirect
 	github.com/openshift-online/ocm-common v0.0.32 // indirect
-	github.com/openshift-online/ocm-sdk-go v0.1.478 // indirect
 	github.com/openshift/api v0.0.0-20250710004639-926605d3338b // indirect
 	github.com/openshift/client-go v0.0.0-20250710075018-396b36f983ee // indirect
 	github.com/pkg/browser v0.0.0-20240102092130-5ac0b6a4141c // indirect
