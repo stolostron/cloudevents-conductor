@@ -19,7 +19,7 @@ import (
 var _ = Describe("Manifestwork from database", Ordered, Label("manifestwork-db"), func() {
 	BeforeAll(func() {
 		Eventually(func() error {
-			consumerList, resp, err := maestroAPIClient.DefaultApi.ApiMaestroV1ConsumersGet(ctx).Execute()
+			consumerList, resp, err := maestroAPIClient.DefaultAPI.ApiMaestroV1ConsumersGet(ctx).Execute()
 			if err != nil {
 				return fmt.Errorf("failed to get consumers: %v, response: %v", err, resp)
 			}
@@ -74,7 +74,7 @@ var _ = Describe("Manifestwork from database", Ordered, Label("manifestwork-db")
 		It("should manifestwork delivered from database and apply to managed cluster via gRPC", func() {
 			By("get the resource via maestro api", func() {
 				// search := fmt.Sprintf("consumer_name = '%s'", managedClusterName)
-				gotResourceList, resp, err := maestroAPIClient.DefaultApi.ApiMaestroV1ResourceBundlesGet(ctx).Execute()
+				gotResourceList, resp, err := maestroAPIClient.DefaultAPI.ApiMaestroV1ResourceBundlesGet(ctx).Execute()
 				Expect(err).ShouldNot(HaveOccurred())
 				Expect(resp.StatusCode).To(Equal(http.StatusOK))
 				Expect(len(gotResourceList.Items)).To(Equal(1))
@@ -96,7 +96,7 @@ var _ = Describe("Manifestwork from database", Ordered, Label("manifestwork-db")
 
 			By("get the resource status from maestro", func() {
 				Eventually(func() error {
-					res, resp, err := maestroAPIClient.DefaultApi.ApiMaestroV1ResourceBundlesIdGet(ctx, resourceID).Execute()
+					res, resp, err := maestroAPIClient.DefaultAPI.ApiMaestroV1ResourceBundlesIdGet(ctx, resourceID).Execute()
 					if err != nil {
 						return fmt.Errorf("failed to get resource bundles: %v, response: %v", err, resp)
 					}
@@ -140,7 +140,7 @@ var _ = Describe("Manifestwork from database", Ordered, Label("manifestwork-db")
 					return nil
 				}, eventuallyTimeout, eventuallyInterval).ShouldNot(gomega.HaveOccurred())
 
-				gotResource, resp, err := maestroAPIClient.DefaultApi.ApiMaestroV1ResourceBundlesIdGet(ctx, resourceID).Execute()
+				gotResource, resp, err := maestroAPIClient.DefaultAPI.ApiMaestroV1ResourceBundlesIdGet(ctx, resourceID).Execute()
 				Expect(err).ShouldNot(HaveOccurred())
 				Expect(resp.StatusCode).To(Equal(http.StatusOK))
 				Expect(*gotResource.Version).To(Equal(int32(2)))

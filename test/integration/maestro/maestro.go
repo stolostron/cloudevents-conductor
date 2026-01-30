@@ -69,8 +69,8 @@ func NewMaestro(dbPort uint32) *Maestro {
 		m = &Maestro{
 			dbFactory:        env.Database.SessionFactory,
 			eventBroadcaster: eventBroadcaster,
-			apiServer:        server.NewAPIServer(eventBroadcaster),
-			eventServer:      server.NewGRPCBroker(eventBroadcaster),
+			apiServer:        server.NewAPIServer(context.Background(), eventBroadcaster),
+			eventServer:      server.NewGRPCBroker(context.Background(), eventBroadcaster),
 			controllerManager: &server.ControllersServer{
 				StatusController: controllers.NewStatusController(
 					env.Services.StatusEvents(),
@@ -120,7 +120,7 @@ func (m *Maestro) startEventBroadcaster(ctx context.Context) {
 func (m *Maestro) startAPIServer(ctx context.Context) {
 	go func() {
 		klog.Info("starting api server")
-		m.apiServer.Start()
+		m.apiServer.Start(context.Background())
 	}()
 
 	go func() {

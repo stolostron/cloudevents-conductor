@@ -4,7 +4,7 @@
 
 global:
   imageOverrides:
-    maestroImage: quay.io/redhat-user-workloads/maestro-rhtap-tenant/maestro/maestro:fc8d1980eefb719d5205a383f7665e6dc8b937cc
+    maestroImage: quay.io/redhat-user-workloads/maestro-rhtap-tenant/maestro/maestro:latest
     postgresImage: quay.io/maestro/postgres:17.2
   imagePullPolicy: IfNotPresent
   pullSecret: ""

@@ -127,7 +127,7 @@ var _ = Describe("Registration and apply work using GRPC", Ordered, Label("grpc-
 
 			By("getting consumer for the managedcluster", func() {
 				Eventually(func() error {
-					consumerList, resp, err := openAPIClient.DefaultApi.ApiMaestroV1ConsumersGet(context.Background()).Execute()
+					consumerList, resp, err := openAPIClient.DefaultAPI.ApiMaestroV1ConsumersGet(context.Background()).Execute()
 					if err != nil {
 						return fmt.Errorf("failed to get consumers: %v, response: %v", err, resp)
 					}
@@ -170,7 +170,7 @@ var _ = Describe("Registration and apply work using GRPC", Ordered, Label("grpc-
 				Expect(*deploy.Spec.Replicas).To(Equal(int32(1)))
 
 				Eventually(func() error {
-					resList, resp, err := openAPIClient.DefaultApi.ApiMaestroV1ResourceBundlesGet(context.Background()).Execute()
+					resList, resp, err := openAPIClient.DefaultAPI.ApiMaestroV1ResourceBundlesGet(context.Background()).Execute()
 					if err != nil {
 						return fmt.Errorf("failed to get resource bundles: %v, response: %v", err, resp)
 					}
@@ -233,7 +233,7 @@ var _ = Describe("Registration and apply work using GRPC", Ordered, Label("grpc-
 				}, eventuallyTimeout, eventuallyInterval).Should(HaveOccurred())
 
 				Eventually(func() error {
-					resList, resp, err := openAPIClient.DefaultApi.ApiMaestroV1ResourceBundlesGet(context.Background()).Execute()
+					resList, resp, err := openAPIClient.DefaultAPI.ApiMaestroV1ResourceBundlesGet(context.Background()).Execute()
 					if err != nil {
 						return fmt.Errorf("failed to get resource bundles: %v, response: %v", err, resp)
 					}

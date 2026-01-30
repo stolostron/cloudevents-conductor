@@ -28,7 +28,7 @@ import (
 	"open-cluster-management.io/ocm/pkg/server/services/event"
 	"open-cluster-management.io/ocm/pkg/server/services/lease"
 	"open-cluster-management.io/ocm/pkg/server/services/work"
-	addonce "open-cluster-management.io/sdk-go/pkg/cloudevents/clients/addon"
+	addonce "open-cluster-management.io/sdk-go/pkg/cloudevents/clients/addon/v1alpha1"
 	clusterce "open-cluster-management.io/sdk-go/pkg/cloudevents/clients/cluster"
 	csrce "open-cluster-management.io/sdk-go/pkg/cloudevents/clients/csr"
 	eventce "open-cluster-management.io/sdk-go/pkg/cloudevents/clients/event"
@@ -85,14 +85,18 @@ func loadGRPCServerConfig(configPath string) (*GRPCServerConfig, error) {
 
 type GRPCServerOptions struct {
 	GRPCServerConfigFile string
+	grpcBrokerOptions    *grpcceserver.BrokerOptions
 }
 
 func NewGRPCServerOptions() *GRPCServerOptions {
-	return &GRPCServerOptions{}
+	return &GRPCServerOptions{
+		grpcBrokerOptions: grpcceserver.NewBrokerOptions(),
+	}
 }
 
 func (o *GRPCServerOptions) AddFlags(fs *pflag.FlagSet) {
 	fs.StringVar(&o.GRPCServerConfigFile, "server-config", o.GRPCServerConfigFile, "Location of the server configuration file.")
+	o.grpcBrokerOptions.AddFlags(fs)
 }
 
 func (o *GRPCServerOptions) Run(ctx context.Context, controllerContext *controllercmd.ControllerContext) error {
@@ -131,19 +135,27 @@ func (o *GRPCServerOptions) Run(ctx context.Context, controllerContext *controll
 
 	workService := work.NewWorkService(clients.WorkClient, clients.WorkInformers.Work().V1().ManifestWorks())
 
-	grpcEventServer := grpcceserver.NewGRPCBroker()
-	grpcEventServer.RegisterService(clusterce.ManagedClusterEventDataType,
+	grpcEventServer := grpcceserver.NewGRPCBroker(o.grpcBrokerOptions)
+	grpcEventServer.RegisterService(
+		ctx,
+		clusterce.ManagedClusterEventDataType,
 		cluster.NewClusterService(clients.ClusterClient, clients.ClusterInformers.Cluster().V1().ManagedClusters()))
-	grpcEventServer.RegisterService(csrce.CSREventDataType,
+	grpcEventServer.RegisterService(
+		ctx,
+		csrce.CSREventDataType,
 		csr.NewCSRService(clients.KubeClient, clients.KubeInformers.Certificates().V1().CertificateSigningRequests()))
 	grpcEventServer.RegisterService(
+		ctx,
 		addonce.ManagedClusterAddOnEventDataType,
 		addon.NewAddonService(clients.AddOnClient, clients.AddOnInformers.Addon().V1alpha1().ManagedClusterAddOns()))
-	grpcEventServer.RegisterService(eventce.EventEventDataType,
+	grpcEventServer.RegisterService(ctx,
+		eventce.EventEventDataType,
 		event.NewEventService(clients.KubeClient))
-	grpcEventServer.RegisterService(leasece.LeaseEventDataType,
+	grpcEventServer.RegisterService(ctx,
+		leasece.LeaseEventDataType,
 		lease.NewLeaseService(clients.KubeClient, clients.KubeInformers.Coordination().V1().Leases()))
-	grpcEventServer.RegisterService(payload.ManifestBundleEventDataType,
+	grpcEventServer.RegisterService(ctx,
+		payload.ManifestBundleEventDataType,
 		services.NewRouterService(dbService, ctrMgr, workService, clients.WorkInformers.Work().V1().ManifestWorks()))
 
 	managedClusterController := controller.NewManagedClusterController(

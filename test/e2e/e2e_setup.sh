@@ -35,7 +35,7 @@ EOF
 fi
 
 # 2. build conductor image and load to KinD cluster
-image_tag=${image_tag} BASE_IMAGE=golang:1.24 make image
+image_tag=${image_tag} BASE_IMAGE=golang:1.25 make image
   # related issue: https://github.com/kubernetes-sigs/kind/issues/2038
 if command -v docker &> /dev/null; then
     kind load docker-image ${image_repository}/${image_name}:${image_tag} --name cloudevents-conductor-e2e
@@ -127,6 +127,7 @@ while true; do
   now=$(date +%s)
   if [ $((now - start)) -ge $timeout ]; then
     echo "Timed out waiting for '8090' in grpc server logs"
+    kubectl logs deployment/cluster-manager-grpc-server -n open-cluster-management-hub
     exit 1
   fi
   sleep 5

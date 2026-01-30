@@ -55,6 +55,7 @@ db_config:
 					ClientCAFile:          "/path/to/ca.crt",
 					TLSMinVersion:         771,
 					TLSMaxVersion:         772,
+					CertWatchInterval:     1 * time.Minute,
 				},
 				DBConfig: &dbconfig.DatabaseConfig{
 					AuthMethod:         constants.AuthMethodPassword,
@@ -105,6 +106,7 @@ db_config:
 					ClientCAFile:          "/var/run/secrets/hub/grpc/ca/ca-bundle.crt",
 					TLSMinVersion:         771,
 					TLSMaxVersion:         772,
+					CertWatchInterval:     1 * time.Minute,
 				},
 				DBConfig: &dbconfig.DatabaseConfig{
 					AuthMethod:         constants.AuthMethodPassword,
@@ -152,6 +154,7 @@ db_config:
 					ClientCAFile:          "/var/run/secrets/hub/grpc/ca/ca-bundle.crt",
 					TLSMinVersion:         771,
 					TLSMaxVersion:         772,
+					CertWatchInterval:     1 * time.Minute,
 				},
 				DBConfig: &dbconfig.DatabaseConfig{
 					AuthMethod:         constants.AuthMethodPassword,
@@ -201,6 +204,7 @@ grpc_config:
 					ClientCAFile:          "/path/to/ca.crt",
 					TLSMinVersion:         771,
 					TLSMaxVersion:         772,
+					CertWatchInterval:     1 * time.Minute,
 				},
 				DBConfig: &dbconfig.DatabaseConfig{
 					AuthMethod:         constants.AuthMethodPassword,
