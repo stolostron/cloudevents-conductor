@@ -5,7 +5,7 @@ go 1.25.0
 require (
 	github.com/cloudevents/sdk-go/v2 v2.16.2
 	github.com/fergusstrange/embedded-postgres v1.32.0
-	github.com/lib/pq v1.10.9
+	github.com/lib/pq v1.11.2
 	github.com/onsi/ginkgo/v2 v2.27.5
 	github.com/onsi/gomega v1.39.0
 	github.com/openshift-online/maestro v0.0.0-20260129071946-42416472685b
