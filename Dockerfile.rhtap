@@ -18,14 +18,14 @@ RUN CGO_ENABLED=1 GOFLAGS="-p=4" go build -mod=readonly -tags strictfipsruntime 
 FROM registry.access.redhat.com/ubi9/ubi-minimal:latest
 
 # Red Hat annotations.
-LABEL com.redhat.component="multicluster-cloudevents-conductor"
+LABEL com.redhat.component="cloudevents-conductor"
 LABEL org.label-schema.vendor="Red Hat"
 LABEL org.label-schema.license="Red Hat Advanced Cluster Management for Kubernetes EULA"
 LABEL org.label-schema.schema-version="1.0"
 
 # Bundle metadata
-LABEL name="multicluster-hub/multicluster-cloudevents-conductor"
-LABEL version="release-1.6"
+LABEL name="multicluster-engine/cloudevents-conductor-rhel9"
+LABEL cpe="cpe:/a:redhat:multicluster_engine:2.17::el9"
 LABEL summary="multicluster cloudevents conductor"
 LABEL io.openshift.expose-services=""
 LABEL io.openshift.tags="data,images"
