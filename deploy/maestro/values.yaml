@@ -4,16 +4,25 @@
 
 global:
   imageOverrides:
-    maestroImage: quay.io/redhat-user-workloads/maestro-rhtap-tenant/maestro/maestro:latest
-    postgresImage: quay.io/maestro/postgres:17.2
-  imagePullPolicy: IfNotPresent
-  pullSecret: ""
+    maestro_image: quay.io/redhat-user-workloads/crt-redhat-acm-tenant/maestro-mce-217:latest
+    postgres_image: quay.io/stolostron/postgresql-16:9.5-1732622748
+  pullSecret: null
+  pullPolicy: IfNotPresent
   namespace: maestro
+  deployOnOCP: true
+
+hubconfig:
+  nodeSelector: null
+  tolerations: []
+  proxyConfigs: {}
+  replicaCount: 1
+  ocpVersion: 4.12.0
 
 maestro:
-  replicas: 1
   logLevel: 2
 
 database:
   useExternalDB: false
   storage: 1Gi
+
+org: open-cluster-management

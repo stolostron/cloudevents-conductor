@@ -76,9 +76,9 @@ test-e2e: test-e2e/teardown test-e2e/setup test-e2e/run
 
 image: fmt verify
 ifdef BASE_IMAGE
-	$(container_tool) build -f Containerfile.konflux --build-arg BASE_IMAGE=$(BASE_IMAGE) -t "$(image_repository)/$(image_name):$(image_tag)" .
+	$(container_tool) build -f Dockerfile.rhtap --build-arg BASE_IMAGE=$(BASE_IMAGE) -t "$(image_repository)/$(image_name):$(image_tag)" .
 else
-	$(container_tool) build -f Containerfile.konflux -t "$(image_repository)/$(image_name):$(image_tag)" .
+	$(container_tool) build -f Dockerfile.rhtap -t "$(image_repository)/$(image_name):$(image_tag)" .
 endif
 .PHONY: image
 

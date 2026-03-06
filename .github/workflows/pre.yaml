@@ -5,7 +5,7 @@ on:
   pull_request:
     branches:
       - main
-      - release-*
+      - backplane-*
 
 env:
   GO_VERSION: '1.25'
