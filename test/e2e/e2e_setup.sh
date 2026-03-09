@@ -49,10 +49,9 @@ else
 fi
 
 # 3. deploy maestro
-helm install maestro ${CURRENT_DIR}/../../deploy/maestro
+helm install maestro ${CURRENT_DIR}/../../deploy/maestro --set global.deployOnOCP=false
 
 # wait until maestro deployment available
-kubectl wait --for=condition=available --timeout=120s deployment/maestro-db -n maestro
 kubectl wait --for=condition=available --timeout=120s deployment/maestro -n maestro
 
 # patch maestro services to be access externally
@@ -118,7 +117,7 @@ EOF
 kubectl wait --for=condition=available --timeout=120s deployment/cluster-manager-grpc-server -n open-cluster-management-hub
 
 # wait until grpc-server logs contain 8090 port
-timeout=120
+timeout=300
 start=$(date +%s)
 while true; do
   if kubectl logs deployment/cluster-manager-grpc-server -n open-cluster-management-hub | grep -q "8090"; then
@@ -130,7 +129,7 @@ while true; do
     kubectl logs deployment/cluster-manager-grpc-server -n open-cluster-management-hub
     exit 1
   fi
-  sleep 5
+  sleep 30
 done
 
 echo "Join $managed_cluster_name to cluster"

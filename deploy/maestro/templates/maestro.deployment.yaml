@@ -7,7 +7,7 @@ metadata:
   name: maestro
   namespace: '{{ .Values.global.namespace }}'
 spec:
-  replicas: {{ .Values.maestro.replicas }}
+  replicas: {{ .Values.hubconfig.replicaCount }}
   selector:
     matchLabels:
       app: maestro
@@ -21,6 +21,17 @@ spec:
       labels:
         app: maestro
     spec:
+      hostIPC: false
+      hostNetwork: false
+      hostPID: false
+      securityContext:
+        runAsNonRoot: true
+{{- if .Values.global.deployOnOCP }}
+{{- if semverCompare ">=4.11.0" .Values.hubconfig.ocpVersion }}
+        seccompProfile:
+          type: RuntimeDefault
+{{- end }}
+{{- end }}
       containers:
       - command:
         - "/usr/local/bin/maestro"
@@ -34,9 +45,6 @@ spec:
         - "--db-sslmode=disable"
         - "--db-max-open-connections=50"
         - "--server-hostname=0.0.0.0"
-        - "--enable-ocm-mock=true"
-        - "--enable-jwt=false"
-        - "--enable-sentry=false"
         - "--http-server-bindport=8000"
         - "--http-read-timeout=5s"
         - "--http-write-timeout=30s"
@@ -52,8 +60,8 @@ spec:
           valueFrom:
             fieldRef:
               fieldPath: metadata.name
-        image: {{ .Values.global.imageOverrides.maestroImage }}
-        imagePullPolicy: {{ .Values.global.imagePullPolicy }}
+        image: {{ .Values.global.imageOverrides.maestro_image }}
+        imagePullPolicy: {{ .Values.global.pullPolicy }}
         ports:
         - name: http-port
           containerPort: 8000
@@ -78,12 +86,15 @@ spec:
           initialDelaySeconds: 20
           periodSeconds: 10
         resources:
-          limits:
-            cpu: '1'
-            memory: 1Gi
           requests:
-            cpu: 200m
-            memory: 512Mi
+            cpu: 100m
+            memory: 256Mi
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          runAsNonRoot: true
         volumeMounts:
         - mountPath: "/secrets/rds"
           name: maestro-db-config
@@ -98,14 +109,74 @@ spec:
         - "--db-name-file=/secrets/rds/name"
         - "--alsologtostderr"
         - "-v={{ .Values.maestro.logLevel }}"
-        image: {{ .Values.global.imageOverrides.maestroImage }}
-        imagePullPolicy: {{ .Values.global.imagePullPolicy }}
+        image: {{ .Values.global.imageOverrides.maestro_image }}
+        imagePullPolicy: {{ .Values.global.pullPolicy }}
         name: migration
+        resources:
+          requests:
+            cpu: 50m
+            memory: 128Mi
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          runAsNonRoot: true
         volumeMounts:
         - mountPath: "/secrets/rds"
           name: maestro-db-config
       serviceAccountName: maestro
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+            - matchExpressions:
+              - key: kubernetes.io/arch
+                operator: In
+                values:
+                - amd64
+                - ppc64le
+                - s390x
+                - arm64
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 70
+            podAffinityTerm:
+              topologyKey: topology.kubernetes.io/zone
+              labelSelector:
+                matchExpressions:
+                - key: app
+                  operator: In
+                  values:
+                  - maestro
+          - weight: 35
+            podAffinityTerm:
+              topologyKey: kubernetes.io/hostname
+              labelSelector:
+                matchExpressions:
+                - key: app
+                  operator: In
+                  values:
+                  - maestro
       volumes:
       - name: maestro-db-config
         secret:
           secretName: maestro-db-config
+{{- if .Values.global.pullSecret }}
+      imagePullSecrets:
+      - name: {{ .Values.global.pullSecret }}
+{{- end }}
+{{- with .Values.hubconfig.nodeSelector }}
+      nodeSelector:
+{{ toYaml . | indent 8 }}
+{{- end }}
+{{- with .Values.hubconfig.tolerations }}
+      tolerations:
+      {{- range . }}
+      - {{ if .Key }} key: {{ .Key }} {{- end }}
+        {{ if .Operator }} operator: {{ .Operator }} {{- end }}
+        {{ if .Value }} value: {{ .Value }} {{- end }}
+        {{ if .Effect }} effect: {{ .Effect }} {{- end }}
+        {{ if .TolerationSeconds }} tolerationSeconds: {{ .TolerationSeconds }} {{- end }}
+        {{- end }}
+{{- end }}

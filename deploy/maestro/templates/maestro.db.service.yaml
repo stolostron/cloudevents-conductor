@@ -5,6 +5,7 @@ metadata:
   name: maestro-db
   namespace: '{{ .Values.global.namespace }}'
 spec:
+  clusterIP: None
   ports:
   - name: postgresql
     port: 5432
@@ -12,5 +13,4 @@ spec:
     targetPort: 5432
   selector:
     name: maestro-db
-  type: ClusterIP
 {{- end -}}
