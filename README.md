@@ -14,25 +14,27 @@ The diagram below shows how the CloudEvents Conductor acts as a central hub, coo
 
 ## Deploy
 
-### Deploy the `cloudevents-conductor` on your hub
+### Deploy the `Maestro server` and `cloudevents-conductor` on your ACM hub
 
-1. Run the following command to deploy Maestro on your hub:
-
-```sh
-helm install maestro deploy/maestro
-```
-
-2. Enable `cloudevents-conductor` on your hub
-
-Run the following command to deploy the `cloudevents-conductor` on your hub:
+Run the following command to deploy Maestro on your ACM hub:
 
 ```sh
-deploy/conductor/install.sh
+oc patch mce <your-mce-cr-name> --type=merge \
+    -p '{"spec":{"overrides":{"components":[{"name":"maestro-preview","enabled":true}]}}}'
+
+# wait for MCE available
+oc get mce -w
+NAME                 STATUS        AGE   CURRENTVERSION   DESIREDVERSION
+multiclusterengine   Progressing   37m   2.17.0-116       2.17.0-116
+multiclusterengine   Progressing   38m   2.17.0-116       2.17.0-116
+multiclusterengine   Progressing   38m   2.17.0-116       2.17.0-116
+multiclusterengine   Progressing   38m   2.17.0-116       2.17.0-116
+multiclusterengine   Available     39m   2.17.0-116       2.17.0-116
 ```
 
 ### Import your managed cluster
 
-1. Create a `KlusterletConfig` to set the `grpc` type for the `registrationDriver` for cluster registration:
+1. Create a `KlusterletConfig` on your ACM hub to set the `grpc` type for the `registrationDriver` for cluster registration:
 
 ```bash
 cat << EOF | oc apply -f -

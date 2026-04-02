@@ -22,13 +22,15 @@ import (
 	"gopkg.in/yaml.v2"
 	"k8s.io/klog/v2"
 	ocmgrpcserver "open-cluster-management.io/ocm/pkg/server/grpc"
-	"open-cluster-management.io/ocm/pkg/server/services/addon"
+	addonv1alpha1 "open-cluster-management.io/ocm/pkg/server/services/addon/v1alpha1"
+	addonv1beta1 "open-cluster-management.io/ocm/pkg/server/services/addon/v1beta1"
 	"open-cluster-management.io/ocm/pkg/server/services/cluster"
 	"open-cluster-management.io/ocm/pkg/server/services/csr"
 	"open-cluster-management.io/ocm/pkg/server/services/event"
 	"open-cluster-management.io/ocm/pkg/server/services/lease"
 	"open-cluster-management.io/ocm/pkg/server/services/work"
-	addonce "open-cluster-management.io/sdk-go/pkg/cloudevents/clients/addon/v1alpha1"
+	addoncev1alpha1 "open-cluster-management.io/sdk-go/pkg/cloudevents/clients/addon/v1alpha1"
+	addoncev1beta1 "open-cluster-management.io/sdk-go/pkg/cloudevents/clients/addon/v1beta1"
 	clusterce "open-cluster-management.io/sdk-go/pkg/cloudevents/clients/cluster"
 	csrce "open-cluster-management.io/sdk-go/pkg/cloudevents/clients/csr"
 	eventce "open-cluster-management.io/sdk-go/pkg/cloudevents/clients/event"
@@ -146,8 +148,12 @@ func (o *GRPCServerOptions) Run(ctx context.Context, controllerContext *controll
 		csr.NewCSRService(clients.KubeClient, clients.KubeInformers.Certificates().V1().CertificateSigningRequests()))
 	grpcEventServer.RegisterService(
 		ctx,
-		addonce.ManagedClusterAddOnEventDataType,
-		addon.NewAddonService(clients.AddOnClient, clients.AddOnInformers.Addon().V1alpha1().ManagedClusterAddOns()))
+		addoncev1alpha1.ManagedClusterAddOnEventDataType,
+		addonv1alpha1.NewAddonService(clients.AddOnClient, clients.AddOnInformers.Addon().V1alpha1().ManagedClusterAddOns()))
+	grpcEventServer.RegisterService(
+		ctx,
+		addoncev1beta1.ManagedClusterAddOnEventDataType,
+		addonv1beta1.NewAddonService(clients.AddOnClient, clients.AddOnInformers.Addon().V1beta1().ManagedClusterAddOns()))
 	grpcEventServer.RegisterService(ctx,
 		eventce.EventEventDataType,
 		event.NewEventService(clients.KubeClient))
