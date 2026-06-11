@@ -51,7 +51,7 @@ spec:
       - name: revision
         value: main
       - name: pathInRepo
-        value: pipelines/common-base.yaml
+        value: pipelines/common.yaml
   taskRunTemplate:
     serviceAccountName: build-pipeline-cloudevents-conductor-mce-50
   workspaces:
