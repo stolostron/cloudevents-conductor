@@ -53,8 +53,8 @@ db_config:
 					TLSCertFile:           "/path/to/tls.crt",
 					TLSKeyFile:            "/path/to/tls.key",
 					ClientCAFile:          "/path/to/ca.crt",
-					TLSMinVersion:         771,
-					TLSMaxVersion:         772,
+					TLSMinVersion:         "VersionTLS12",
+					TLSMaxVersion:         "VersionTLS13",
 					CertWatchInterval:     1 * time.Minute,
 				},
 				DBConfig: &dbconfig.DatabaseConfig{
@@ -104,8 +104,8 @@ db_config:
 					TLSCertFile:           "/var/run/secrets/hub/grpc/serving-cert/tls.crt",
 					TLSKeyFile:            "/var/run/secrets/hub/grpc/serving-cert/tls.key",
 					ClientCAFile:          "/var/run/secrets/hub/grpc/ca/ca-bundle.crt",
-					TLSMinVersion:         771,
-					TLSMaxVersion:         772,
+					TLSMinVersion:         "VersionTLS12",
+					TLSMaxVersion:         "VersionTLS13",
 					CertWatchInterval:     1 * time.Minute,
 				},
 				DBConfig: &dbconfig.DatabaseConfig{
@@ -152,8 +152,8 @@ db_config:
 					TLSCertFile:           "/var/run/secrets/hub/grpc/serving-cert/tls.crt",
 					TLSKeyFile:            "/var/run/secrets/hub/grpc/serving-cert/tls.key",
 					ClientCAFile:          "/var/run/secrets/hub/grpc/ca/ca-bundle.crt",
-					TLSMinVersion:         771,
-					TLSMaxVersion:         772,
+					TLSMinVersion:         "VersionTLS12",
+					TLSMaxVersion:         "VersionTLS13",
 					CertWatchInterval:     1 * time.Minute,
 				},
 				DBConfig: &dbconfig.DatabaseConfig{
@@ -202,8 +202,8 @@ grpc_config:
 					TLSCertFile:           "/path/to/tls.crt",
 					TLSKeyFile:            "/path/to/tls.key",
 					ClientCAFile:          "/path/to/ca.crt",
-					TLSMinVersion:         771,
-					TLSMaxVersion:         772,
+					TLSMinVersion:         "VersionTLS12",
+					TLSMaxVersion:         "VersionTLS13",
 					CertWatchInterval:     1 * time.Minute,
 				},
 				DBConfig: &dbconfig.DatabaseConfig{
