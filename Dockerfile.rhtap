@@ -25,7 +25,7 @@ LABEL org.label-schema.schema-version="1.0"
 
 # Bundle metadata
 LABEL name="multicluster-engine/cloudevents-conductor-rhel9"
-LABEL cpe="cpe:/a:redhat:multicluster_engine:2.17::el9"
+LABEL cpe="cpe:/a:redhat:multicluster_engine:5.0::el9"
 LABEL summary="multicluster cloudevents conductor"
 LABEL io.openshift.expose-services=""
 LABEL io.openshift.tags="data,images"
