@@ -5,6 +5,7 @@ import (
 	"errors"
 	"strings"
 	"testing"
+	"time"
 
 	ce "github.com/cloudevents/sdk-go/v2"
 	"github.com/openshift-online/maestro/pkg/api"
@@ -85,6 +86,10 @@ func (m *mockResourceService) ListWithArgs(ctx context.Context, username string,
 	return nil, nil
 }
 
+func (m *mockResourceService) FindUndelivered(ctx context.Context, threshold time.Duration) (api.ResourceList, *maestroerrors.ServiceError) {
+	return api.ResourceList{}, nil
+}
+
 // Mock StatusEventService
 type mockStatusEventService struct {
 	createFunc func(ctx context.Context, event *api.StatusEvent) (*api.StatusEvent, *maestroerrors.ServiceError)
@@ -127,6 +132,10 @@ func (m *mockStatusEventService) DeleteAllReconciledEvents(ctx context.Context) 
 
 func (m *mockStatusEventService) DeleteAllEvents(ctx context.Context, eventIDs []string) *maestroerrors.ServiceError {
 	return nil
+}
+
+func (m *mockStatusEventService) GetNotificationQueueUsage(ctx context.Context) (*float64, *maestroerrors.ServiceError) {
+	return nil, nil
 }
 
 // Mock LockFactory
@@ -177,6 +186,14 @@ func (m *mockEventService) FindAllUnreconciledEvents(ctx context.Context) (api.E
 
 func (m *mockEventService) DeleteAllReconciledEvents(ctx context.Context) *maestroerrors.ServiceError {
 	return nil
+}
+
+func (m *mockEventService) FindAgeOfOldestUnreconciledEvent(ctx context.Context) (*float64, *maestroerrors.ServiceError) {
+	return nil, nil
+}
+
+func (m *mockEventService) ReconcileStaleDeleteEvents(ctx context.Context, threshold time.Duration) (int64, *maestroerrors.ServiceError) {
+	return 0, nil
 }
 
 // Mock EventHandler
