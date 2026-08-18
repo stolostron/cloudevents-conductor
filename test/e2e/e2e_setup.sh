@@ -35,7 +35,10 @@ EOF
 fi
 
 # 2. build conductor image and load to KinD cluster
-image_tag=${image_tag} BASE_IMAGE=golang:1.25 make image
+# BASE_IMAGE/FINAL_BASE_IMAGE override the Red Hat-internal images
+# (brew.registry.redhat.io and registry.redhat.io, respectively) that
+# CI runners can't authenticate against, with public equivalents.
+image_tag=${image_tag} BASE_IMAGE=golang:1.25 FINAL_BASE_IMAGE=registry.access.redhat.com/ubi9/ubi-minimal:latest make image
   # related issue: https://github.com/kubernetes-sigs/kind/issues/2038
 if command -v docker &> /dev/null; then
     kind load docker-image ${image_repository}/${image_name}:${image_tag} --name cloudevents-conductor-e2e

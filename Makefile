@@ -75,11 +75,10 @@ test-e2e: test-e2e/teardown test-e2e/setup test-e2e/run
 .PHONY: test-e2e
 
 image: fmt verify
-ifdef BASE_IMAGE
-	$(container_tool) build -f Dockerfile.rhtap --build-arg BASE_IMAGE=$(BASE_IMAGE) -t "$(image_repository)/$(image_name):$(image_tag)" .
-else
-	$(container_tool) build -f Dockerfile.rhtap -t "$(image_repository)/$(image_name):$(image_tag)" .
-endif
+	$(container_tool) build -f Dockerfile.rhtap \
+		$(if $(BASE_IMAGE),--build-arg BASE_IMAGE=$(BASE_IMAGE)) \
+		$(if $(FINAL_BASE_IMAGE),--build-arg FINAL_BASE_IMAGE=$(FINAL_BASE_IMAGE)) \
+		-t "$(image_repository)/$(image_name):$(image_tag)" .
 .PHONY: image
 
 push: image
