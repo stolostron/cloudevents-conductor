@@ -1,8 +1,10 @@
 # Copyright (c) 2025 Red Hat, Inc.
 # Copyright Contributors to the Open Cluster Management project
 
-# make base image configurable
+# make base images configurable (overridable for local/CI e2e builds that
+# lack credentials for the Red Hat-internal registries used by default)
 ARG BASE_IMAGE=brew.registry.redhat.io/rh-osbs/openshift-golang-builder:rhel_9_1.25
+ARG FINAL_BASE_IMAGE=registry.redhat.io/ubi9/ubi-minimal-pqc:latest
 
 # Stage 1: build the target binaries
 FROM ${BASE_IMAGE} AS builder
@@ -15,7 +17,7 @@ COPY ./pkg ./pkg
 RUN CGO_ENABLED=1 GOFLAGS="-p=4" go build -mod=readonly -tags strictfipsruntime -a -v -o bin/conductor cmd/main.go
 
 # Stage 2: Copy the binaries from the image builder to the base image
-FROM registry.access.redhat.com/ubi9/ubi-minimal:latest
+FROM ${FINAL_BASE_IMAGE}
 
 # Red Hat annotations.
 LABEL com.redhat.component="cloudevents-conductor"
