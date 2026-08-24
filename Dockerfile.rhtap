@@ -3,7 +3,7 @@
 
 # make base images configurable (overridable for local/CI e2e builds that
 # lack credentials for the Red Hat-internal registries used by default)
-ARG BASE_IMAGE=brew.registry.redhat.io/rh-osbs/openshift-golang-builder:rhel_9_1.25
+ARG BASE_IMAGE=brew.registry.redhat.io/rh-osbs/openshift-golang-builder:rhel_9_1.26
 ARG FINAL_BASE_IMAGE=registry.redhat.io/ubi9/ubi-minimal-pqc:latest
 
 # Stage 1: build the target binaries
