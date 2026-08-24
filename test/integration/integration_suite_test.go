@@ -33,6 +33,8 @@ import (
 	"github.com/stolostron/cloudevents-conductor/test/integration/maestro"
 	clusterclientset "open-cluster-management.io/api/client/cluster/clientset/versioned"
 	workclientset "open-cluster-management.io/api/client/work/clientset/versioned"
+	addonv1alpha1 "open-cluster-management.io/api/addon/v1alpha1"
+	addonv1beta1 "open-cluster-management.io/api/addon/v1beta1"
 	clusterv1 "open-cluster-management.io/api/cluster/v1"
 	ocmfeature "open-cluster-management.io/api/feature"
 	operatorapiv1 "open-cluster-management.io/api/operator/v1"
@@ -148,6 +150,12 @@ var _ = ginkgo.BeforeSuite(func() {
 	gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
 	err = workv1.Install(scheme.Scheme)
+	gomega.Expect(err).NotTo(gomega.HaveOccurred())
+
+	err = addonv1alpha1.Install(scheme.Scheme)
+	gomega.Expect(err).NotTo(gomega.HaveOccurred())
+
+	err = addonv1beta1.Install(scheme.Scheme)
 	gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
 	// prepare configs
