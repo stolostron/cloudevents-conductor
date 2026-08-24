@@ -2,6 +2,7 @@ package maestro
 
 import (
 	"context"
+	"flag"
 	"fmt"
 	"os"
 	"sync"
@@ -37,6 +38,8 @@ func NewMaestro(dbPort uint32) *Maestro {
 	once.Do(func() {
 		env := environments.Environment()
 		env.Name = envtypes.TestingEnv
+		klog.InitFlags(flag.CommandLine)
+		pflag.CommandLine.AddGoFlagSet(flag.CommandLine)
 		if err := env.AddFlags(pflag.CommandLine); err != nil {
 			klog.Fatalf("Unable to add environment flags: %s", err.Error())
 		}
@@ -59,10 +62,8 @@ func NewMaestro(dbPort uint32) *Maestro {
 		// load services
 		env.LoadServices()
 
-		// disable gRPC server, JWT, authz, and message broker for testing
+		// disable gRPC server and message broker for testing
 		env.Config.GRPCServer.EnableGRPCServer = false
-		env.Config.HTTPServer.EnableJWT = false
-		env.Config.HTTPServer.EnableAuthz = false
 		env.Config.MessageBroker.Disable = true
 
 		eventBroadcaster := event.NewEventBroadcaster()
