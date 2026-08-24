@@ -230,7 +230,7 @@ var _ = Describe("Registration and apply work using GRPC", Ordered, Label("grpc-
 						return nil
 					}
 					return err
-				}, eventuallyTimeout, eventuallyInterval).Should(HaveOccurred())
+				}, eventuallyTimeout, eventuallyInterval).ShouldNot(HaveOccurred())
 
 				Eventually(func() error {
 					resList, resp, err := openAPIClient.DefaultAPI.ApiMaestroV1ResourceBundlesGet(context.Background()).Execute()
@@ -328,7 +328,7 @@ var _ = Describe("Registration and apply work using GRPC", Ordered, Label("grpc-
 						return nil
 					}
 					return err
-				}, eventuallyTimeout, eventuallyInterval).Should(HaveOccurred())
+				}, eventuallyTimeout, eventuallyInterval).ShouldNot(HaveOccurred())
 			})
 		})
 	})
