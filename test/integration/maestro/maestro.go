@@ -38,8 +38,12 @@ func NewMaestro(dbPort uint32) *Maestro {
 	once.Do(func() {
 		env := environments.Environment()
 		env.Name = envtypes.TestingEnv
-		klog.InitFlags(flag.CommandLine)
-		pflag.CommandLine.AddGoFlagSet(flag.CommandLine)
+		if flag.CommandLine.Lookup("v") == nil {
+			klog.InitFlags(flag.CommandLine)
+		}
+		if pflag.CommandLine.Lookup("v") == nil {
+			pflag.CommandLine.AddGoFlagSet(flag.CommandLine)
+		}
 		if err := env.AddFlags(pflag.CommandLine); err != nil {
 			klog.Fatalf("Unable to add environment flags: %s", err.Error())
 		}
@@ -47,7 +51,8 @@ func NewMaestro(dbPort uint32) *Maestro {
 			klog.Infof("Using custom loglevel: %s", logLevel)
 			pflag.CommandLine.Set("-v", logLevel)
 		}
-		pflag.Parse()
+		pflag.CommandLine.ParseErrorsWhitelist.UnknownFlags = true
+		_ = pflag.CommandLine.Parse(os.Args[1:])
 
 		// set database configuration
 		env.Config.Database.Host = "localhost"
