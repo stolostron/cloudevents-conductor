@@ -1,6 +1,6 @@
 module github.com/stolostron/cloudevents-conductor
 
-go 1.26.0
+go 1.27.4
 
 require (
 	github.com/cloudevents/sdk-go/v2 v2.16.2
